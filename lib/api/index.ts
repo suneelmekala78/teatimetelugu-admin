@@ -1,0 +1,12 @@
+export { default as api } from "./client";
+export { authApi } from "./auth";
+export { newsApi } from "./news";
+export { videoApi } from "./videos";
+export { galleryApi } from "./gallery";
+export { commentApi } from "./comments";
+export { uploadApi } from "./upload";
+export { homeApi } from "./home";
+export { notificationApi } from "./notifications";
+export { searchApi } from "./search";
+export { ttsApi } from "./tts";
+export { userApi } from "./users";

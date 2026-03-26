@@ -6,7 +6,8 @@ export interface NewsQuery {
   limit?: number;
   status?: string;
   category?: string;
-  sortBy?: "createdAt" | "publishedAt" | "viewCount";
+  author?: string;
+  sortBy?: "createdAt" | "publishedAt" | "viewCount" | "reactionsCount" | "commentsCount";
   order?: "asc" | "desc";
 }
 

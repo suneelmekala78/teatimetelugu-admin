@@ -30,14 +30,14 @@ import { useAuthStore } from "@/stores";
 
 const navItems = [
   { title: "Dashboard", href: "/", icon: LayoutDashboard },
+  { title: "Home Config", href: "/home-config", icon: Home },
   { title: "News", href: "/news", icon: Newspaper },
   { title: "Videos", href: "/videos", icon: Video },
   { title: "Gallery", href: "/gallery", icon: Images },
-//   { title: "Comments", href: "/comments", icon: MessageSquare },
+  // { title: "Comments", href: "/comments", icon: MessageSquare },
 ];
 
 const adminItems = [
-  { title: "Home Config", href: "/home-config", icon: Home },
   { title: "Users", href: "/users", icon: Users },
   { title: "Notifications", href: "/notifications", icon: Bell },
   { title: "Settings", href: "/settings", icon: Settings },
@@ -53,7 +53,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border px-5 py-5">
         <Link href="/" className="flex items-center gap-3">
           <img
-            src="/en-fav-logo.png"
+            src="/icon.png"
             alt="Tea Time Telugu"
             className="h-9 w-9 shrink-0 object-contain rounded-lg"
           />

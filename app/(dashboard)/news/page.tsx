@@ -5,10 +5,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import Link from "next/link";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ExternalLink, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { newsApi, type NewsQuery } from "@/lib/api/news";
+import { userApi } from "@/lib/api/users";
 import type { News } from "@/types";
 import { DataTable, PageHeader, StatusBadge, ConfirmDialog } from "@/components/common";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CATEGORY_OPTIONS, STATUS_OPTIONS } from "@/constants";
+import { Label } from "@/components/ui/label";
+import { CATEGORY_OPTIONS, STATUS_OPTIONS, SITE_URLS } from "@/constants";
 
 const columns: ColumnDef<News>[] = [
   {
@@ -71,7 +73,7 @@ const columns: ColumnDef<News>[] = [
   {
     accessorKey: "createdAt",
     header: "Created",
-    cell: ({ row }) => format(new Date(row.original.createdAt), "MMM dd, yyyy"),
+    cell: ({ row }) => format(new Date(row.original.createdAt), "MMM dd, yyyy, hh:mm a"),
   },
   {
     id: "actions",
@@ -105,6 +107,18 @@ function NewsActions({ news }: { news: News }) {
             <MoreHorizontal className="h-4 w-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={() => window.open(`${SITE_URLS.english}/${news.category}/${news.slug}`, '_blank', 'noopener')}
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            View (English)
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => window.open(`${SITE_URLS.telugu}/${news.category}/${news.slug}`, '_blank', 'noopener')}
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            View (Telugu)
+          </DropdownMenuItem>
           <DropdownMenuItem render={<Link href={`/news/${news._id}/edit`} />}>
               <Pencil className="mr-2 h-4 w-4" />
               Edit
@@ -136,6 +150,7 @@ export default function NewsPage() {
     limit: 10,
     status: "",
     category: "",
+    author: "",
     sortBy: "createdAt",
     order: "desc",
   });
@@ -144,6 +159,12 @@ export default function NewsPage() {
     queryKey: ["news", filters],
     queryFn: () => newsApi.getAll(filters),
     select: (res) => res.data,
+  });
+
+  const { data: writersData } = useQuery({
+    queryKey: ["writers"],
+    queryFn: () => userApi.getAll({ role: "writer", limit: 100 }),
+    select: (res) => res.data.users,
   });
 
   return (
@@ -155,48 +176,76 @@ export default function NewsPage() {
         createLabel="New Article"
       />
 
-      <div className="flex gap-3">
-        <Select
-          value={filters.status || "all"}
-          onValueChange={(v) =>
-            setFilters((f) => ({ ...f, status: !v || v === "all" ? "" : v, page: 1 }))
-          }
-        >
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s.value} value={s.value}>
-                {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex gap-4 flex-wrap">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Status</Label>
+          <Select
+            value={filters.status || "all"}
+            onValueChange={(v) =>
+              setFilters((f) => ({ ...f, status: !v || v === "all" ? "" : v, page: 1 }))
+            }
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              {STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select
-          value={filters.category || "all"}
-          onValueChange={(v) =>
-            setFilters((f) => ({
-              ...f,
-              category: !v || v === "all" ? "" : v,
-              page: 1,
-            }))
-          }
-        >
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {CATEGORY_OPTIONS.map((c) => (
-              <SelectItem key={c.value} value={c.value}>
-                {c.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Category</Label>
+          <Select
+            value={filters.category || "all"}
+            onValueChange={(v) =>
+              setFilters((f) => ({
+                ...f,
+                category: !v || v === "all" ? "" : v,
+                page: 1,
+              }))
+            }
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {CATEGORY_OPTIONS.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Writer</Label>
+          <Select
+            value={filters.author || "all"}
+            onValueChange={(v) =>
+              setFilters((f) => ({ ...f, author: !v || v === "all" ? "" : v, page: 1 }))
+            }
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Writer" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Writers</SelectItem>
+              {writersData?.map((u) => (
+                <SelectItem key={u._id} value={u._id}>
+                  {u.fullName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <DataTable

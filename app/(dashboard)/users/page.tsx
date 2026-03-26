@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { MoreHorizontal, Shield, ShieldOff, Pencil, KeyRound } from "lucide-react";
+import { MoreHorizontal, Shield, ShieldOff, Pencil, KeyRound, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -127,6 +127,7 @@ function UserActions({ user }: { user: User }) {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [selectedRole, setSelectedRole] = useState(user.role);
   const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const queryClient = useQueryClient();
 
   const roleMutation = useMutation({
@@ -264,13 +265,28 @@ function UserActions({ user }: { user: User }) {
           </DialogHeader>
           <div className="space-y-2 py-2">
             <Label htmlFor="new-password">New Password</Label>
-            <Input
-              id="new-password"
-              type="password"
-              placeholder="Minimum 6 characters"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                id="new-password"
+                type={showNewPassword ? "text" : "password"}
+                placeholder="Minimum 6 characters"
+                className="pr-10"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                aria-label={showNewPassword ? "Hide password" : "Show password"}
+                onClick={() => setShowNewPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showNewPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-2">
             <Button

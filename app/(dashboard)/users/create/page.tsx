@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { toast } from "sonner";
-import { Loader2, Mail, Lock, User as UserIcon } from "lucide-react";
+import { Loader2, Mail, Lock, User as UserIcon, Eye, EyeOff } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { userApi } from "@/lib/api/users";
@@ -34,6 +34,7 @@ export default function CreateWriterPage() {
   useAuth({ requiredRole: "admin" });
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -120,11 +121,23 @@ export default function CreateWriterPage() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Minimum 6 characters"
-                  className="pl-10"
+                  className="pl-10 pr-10"
                   {...register("password")}
                 />
+                <button
+                  type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
               {errors.password && (
                 <p className="text-xs text-destructive font-medium">

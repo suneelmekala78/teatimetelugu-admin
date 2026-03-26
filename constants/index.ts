@@ -11,3 +11,8 @@ export const STATUS_OPTIONS = CONTENT_STATUS.map((s) => ({
   value: s,
   label: s.charAt(0).toUpperCase() + s.slice(1),
 }));
+
+export const SITE_URLS = {
+  english: "https://english.teatimetelugu.com",
+  telugu: "https://teatimetelugu.com",
+} as const;

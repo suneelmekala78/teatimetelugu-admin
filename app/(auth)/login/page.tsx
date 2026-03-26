@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { toast } from "sonner";
-import { Loader2, Mail, Lock } from "lucide-react";
+import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +23,10 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
+  const router = useRouter();
   const { setUser } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -49,12 +52,13 @@ export default function LoginPage() {
       setUser(user);
       toast.success("Welcome back!");
 
-      // Full reload so middleware sees the new role cookie
       const redirect = new URLSearchParams(window.location.search).get(
         "redirect",
       );
-      window.location.href = redirect || "/";
+      router.replace(redirect || "/");
+      router.refresh();
     } catch (err: unknown) {
+      console.error("Login failed", err);
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
           ?.message || "Login failed";
@@ -68,7 +72,7 @@ export default function LoginPage() {
     <Card className="w-full max-w-[480px] lg:max-w-[580px] border-0 shadow-2xl shadow-primary/10 backdrop-blur-sm bg-card/95">
       <CardHeader className="flex flex-col items-center gap-3 pb-2 pt-8">
         <img
-          src="/en-fav-logo.png"
+          src="/icon.png"
           alt="Tea Time Telugu"
           className="h-16 w-16 object-contain rounded-full ring-2 ring-primary/20 ring-offset-2 ring-offset-card"
         />
@@ -111,11 +115,23 @@ export default function LoginPage() {
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                className="pl-10 h-11 bg-muted/50 border-input/50 focus:bg-background transition-colors"
+                className="pl-10 pr-10 h-11 bg-muted/50 border-input/50 focus:bg-background transition-colors"
                 {...register("password")}
               />
+              <button
+                type="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
             </div>
             {errors.password && (
               <p className="text-xs text-destructive font-medium">

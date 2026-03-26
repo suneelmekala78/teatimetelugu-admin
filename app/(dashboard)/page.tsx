@@ -8,15 +8,16 @@ import {
   Video,
   Images,
   Eye,
-  TrendingUp,
   ArrowUpRight,
   Clock,
+  MessageCircle,
+  Heart,
 } from "lucide-react";
 
 import { newsApi } from "@/lib/api/news";
 import { videoApi } from "@/lib/api/videos";
 import { galleryApi } from "@/lib/api/gallery";
-import type { News, Video as VideoType, Gallery } from "@/types";
+import type { News } from "@/types";
 import { PageHeader, StatusBadge } from "@/components/common";
 import {
   Card,
@@ -26,10 +27,56 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+function ArticleRow({ article, metric }: { article: News; metric: React.ReactNode }) {
+  return (
+    <Link
+      href={`/news/${article._id}/edit`}
+      className="flex items-center gap-4 py-3.5 first:pt-0 last:pb-0 hover:bg-muted/30 -mx-6 px-6 transition-colors"
+    >
+      <img
+        src={article.thumbnail}
+        alt=""
+        className="h-14 w-22 rounded-lg object-cover ring-1 ring-border/50 shrink-0"
+      />
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-sm truncate leading-snug">
+          {article.title.en}
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <Clock className="h-3 w-3 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">
+            {format(new Date(article.createdAt), "MMM dd, yyyy")}
+          </p>
+        </div>
+      </div>
+      <StatusBadge status={article.status} />
+      {metric}
+    </Link>
+  );
+}
+
 export default function DashboardPage() {
   const { data: newsData } = useQuery({
     queryKey: ["news", { page: 1, limit: 5, sortBy: "createdAt", order: "desc" }],
     queryFn: () => newsApi.getAll({ page: 1, limit: 5, sortBy: "createdAt", order: "desc" }),
+    select: (res) => res.data,
+  });
+
+  const { data: mostViewedData } = useQuery({
+    queryKey: ["news", { page: 1, limit: 5, sortBy: "viewCount", order: "desc" }],
+    queryFn: () => newsApi.getAll({ page: 1, limit: 5, sortBy: "viewCount", order: "desc" }),
+    select: (res) => res.data,
+  });
+
+  const { data: mostReactedData } = useQuery({
+    queryKey: ["news", { page: 1, limit: 5, sortBy: "reactionsCount", order: "desc" }],
+    queryFn: () => newsApi.getAll({ page: 1, limit: 5, sortBy: "reactionsCount", order: "desc" }),
+    select: (res) => res.data,
+  });
+
+  const { data: mostCommentedData } = useQuery({
+    queryKey: ["news", { page: 1, limit: 5, sortBy: "commentsCount", order: "desc" }],
+    queryFn: () => newsApi.getAll({ page: 1, limit: 5, sortBy: "commentsCount", order: "desc" }),
     select: (res) => res.data,
   });
 
@@ -111,6 +158,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      {/* Recent Articles */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
@@ -135,45 +183,125 @@ export default function DashboardPage() {
           {newsData?.news?.length ? (
             <div className="divide-y divide-border/50">
               {newsData.news.map((article: News) => (
-                <Link
+                <ArticleRow
                   key={article._id}
-                  href={`/news/${article._id}/edit`}
-                  className="flex items-center gap-4 py-3.5 first:pt-0 last:pb-0 hover:bg-muted/30 -mx-6 px-6 transition-colors"
-                >
-                  <img
-                    src={article.thumbnail}
-                    alt=""
-                    className="h-14 w-22 rounded-lg object-cover ring-1 ring-border/50 shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate leading-snug">
-                      {article.title.en}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">
-                        {format(
-                          new Date(article.createdAt),
-                          "MMM dd, yyyy"
-                        )}
-                      </p>
+                  article={article}
+                  metric={
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+                      <Eye className="h-3 w-3" />
+                      {article.viewCount.toLocaleString()}
                     </div>
-                  </div>
-                  <StatusBadge status={article.status} />
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
-                    <Eye className="h-3 w-3" />
-                    {article.viewCount.toLocaleString()}
-                  </div>
-                </Link>
+                  }
+                />
               ))}
             </div>
           ) : (
             <div className="text-center py-12">
               <Newspaper className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground text-sm">
-                No articles yet
-              </p>
+              <p className="text-muted-foreground text-sm">No articles yet</p>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Most Viewed & Most Interacted side by side */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Most Viewed */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Eye className="h-4 w-4 text-blue-500" />
+              <CardTitle className="text-lg font-heading">Most Viewed</CardTitle>
+            </div>
+            <CardDescription className="mt-0.5">
+              Top articles by view count
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {mostViewedData?.news?.length ? (
+              <div className="divide-y divide-border/50">
+                {mostViewedData.news.map((article: News) => (
+                  <ArticleRow
+                    key={article._id}
+                    article={article}
+                    metric={
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+                        <Eye className="h-3 w-3" />
+                        {article.viewCount.toLocaleString()}
+                      </div>
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm text-center py-8">No data</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Most Reacted */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Heart className="h-4 w-4 text-red-500" />
+              <CardTitle className="text-lg font-heading">Most Reacted</CardTitle>
+            </div>
+            <CardDescription className="mt-0.5">
+              Top articles by reactions
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {mostReactedData?.news?.length ? (
+              <div className="divide-y divide-border/50">
+                {mostReactedData.news.map((article: News) => (
+                  <ArticleRow
+                    key={article._id}
+                    article={article}
+                    metric={
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+                        <Heart className="h-3 w-3" />
+                        {article.reactionsCount.toLocaleString()}
+                      </div>
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm text-center py-8">No data</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Most Commented */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-4 w-4 text-emerald-500" />
+            <CardTitle className="text-lg font-heading">Most Commented</CardTitle>
+          </div>
+          <CardDescription className="mt-0.5">
+            Top articles by comment count
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {mostCommentedData?.news?.length ? (
+            <div className="divide-y divide-border/50">
+              {mostCommentedData.news.map((article: News) => (
+                <ArticleRow
+                  key={article._id}
+                  article={article}
+                  metric={
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+                      <MessageCircle className="h-3 w-3" />
+                      {article.commentsCount.toLocaleString()}
+                    </div>
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm text-center py-8">No data</p>
           )}
         </CardContent>
       </Card>

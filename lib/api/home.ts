@@ -17,6 +17,13 @@ export const homeApi = {
     );
   },
 
+  editMovieRelease(index: number, data: MovieEntry) {
+    return api.put<{ success: boolean; movieReleases: MovieEntry[] }>(
+      `/home/movie-releases/${index}`,
+      data
+    );
+  },
+
   removeMovieRelease(index: number) {
     return api.delete<{ success: boolean; movieReleases: MovieEntry[] }>(
       `/home/movie-releases/${index}`
@@ -26,6 +33,13 @@ export const homeApi = {
   addMovieCollection(data: CollectionEntry) {
     return api.post<{ success: boolean; movieCollections: CollectionEntry[] }>(
       "/home/movie-collections",
+      data
+    );
+  },
+
+  editMovieCollection(index: number, data: CollectionEntry) {
+    return api.put<{ success: boolean; movieCollections: CollectionEntry[] }>(
+      `/home/movie-collections/${index}`,
       data
     );
   },

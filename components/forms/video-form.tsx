@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,13 +19,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ImageUpload } from "@/components/common";
 import { videoSchema, type VideoFormValues } from "@/lib/validations";
 import { videoApi } from "@/lib/api";
 import { getSubCategoryOptions, STATUS_OPTIONS } from "@/constants";
 import type { Video } from "@/types";
 
 const videoSubcategories = getSubCategoryOptions("videos");
+
+function extractYouTubeId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
 
 interface VideoFormProps {
   initialData?: Video;
@@ -78,6 +90,18 @@ export function VideoForm({ initialData }: VideoFormProps) {
       toast.error(message);
     },
   });
+
+  // Auto-extract YouTube thumbnail when videoUrl changes
+  const videoUrl = watch("videoUrl");
+  const thumbnail = watch("thumbnail");
+
+  useEffect(() => {
+    if (!videoUrl) return;
+    const id = extractYouTubeId(videoUrl);
+    if (id) {
+      setValue("thumbnail", `https://img.youtube.com/vi/${id}/maxresdefault.jpg`);
+    }
+  }, [videoUrl, setValue]);
 
   return (
     <form
@@ -146,9 +170,17 @@ export function VideoForm({ initialData }: VideoFormProps) {
           <Card>
             <CardHeader><CardTitle>Thumbnail</CardTitle></CardHeader>
             <CardContent>
-              <Controller control={control} name="thumbnail" render={({ field }) => (
-                <ImageUpload value={field.value} onChange={field.onChange} folder="video" />
-              )} />
+              {thumbnail ? (
+                <img
+                  src={thumbnail}
+                  alt="Video thumbnail"
+                  className="w-full rounded-lg object-cover aspect-video"
+                />
+              ) : (
+                <div className="w-full aspect-video rounded-lg border border-dashed flex items-center justify-center text-sm text-muted-foreground">
+                  Paste a YouTube URL above to auto-generate thumbnail
+                </div>
+              )}
               {errors.thumbnail && <p className="text-sm text-destructive mt-1">{errors.thumbnail.message}</p>}
             </CardContent>
           </Card>

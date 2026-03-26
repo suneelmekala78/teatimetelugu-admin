@@ -6,6 +6,7 @@ export interface VideoQuery {
   limit?: number;
   status?: string;
   subCategory?: string;
+  author?: string;
   sortBy?: "createdAt" | "publishedAt" | "viewCount";
   order?: "asc" | "desc";
 }

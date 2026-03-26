@@ -183,6 +183,46 @@ export function NewsForm({ initialData }: NewsFormProps) {
               </Tabs>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Tags</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="tags-en">English Tags (comma-separated)</Label>
+                <Input
+                  id="tags-en"
+                  defaultValue={watch("tags.en")?.join(", ") || ""}
+                  onChange={(e) =>
+                    setValue(
+                      "tags.en",
+                      e.target.value
+                        .split(",")
+                        .map((t) => t.trim())
+                        .filter(Boolean),
+                    )
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="tags-te">Telugu Tags (comma-separated)</Label>
+                <Input
+                  id="tags-te"
+                  defaultValue={watch("tags.te")?.join(", ") || ""}
+                  onChange={(e) =>
+                    setValue(
+                      "tags.te",
+                      e.target.value
+                        .split(",")
+                        .map((t) => t.trim())
+                        .filter(Boolean),
+                    )
+                  }
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar */}
@@ -198,10 +238,7 @@ export function NewsForm({ initialData }: NewsFormProps) {
                   control={control}
                   name="status"
                   render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
+                    <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -275,9 +312,12 @@ export function NewsForm({ initialData }: NewsFormProps) {
                   name="category"
                   render={({ field }) => (
                     <Select
-                      value={field.value}
+                      value={field.value || undefined}
                       onValueChange={(v) => {
-                        if (v) { field.onChange(v); setValue("subCategory", null); }
+                        if (v) {
+                          field.onChange(v);
+                          setValue("subCategory", null);
+                        }
                       }}
                     >
                       <SelectTrigger>
@@ -307,7 +347,7 @@ export function NewsForm({ initialData }: NewsFormProps) {
                     name="subCategory"
                     render={({ field }) => (
                       <Select
-                        value={field.value || ""}
+                        value={field.value || undefined}
                         onValueChange={field.onChange}
                       >
                         <SelectTrigger>
@@ -325,46 +365,6 @@ export function NewsForm({ initialData }: NewsFormProps) {
                   />
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Tags</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="tags-en">English Tags (comma-separated)</Label>
-                <Input
-                  id="tags-en"
-                  defaultValue={watch("tags.en")?.join(", ") || ""}
-                  onChange={(e) =>
-                    setValue(
-                      "tags.en",
-                      e.target.value
-                        .split(",")
-                        .map((t) => t.trim())
-                        .filter(Boolean)
-                    )
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="tags-te">Telugu Tags (comma-separated)</Label>
-                <Input
-                  id="tags-te"
-                  defaultValue={watch("tags.te")?.join(", ") || ""}
-                  onChange={(e) =>
-                    setValue(
-                      "tags.te",
-                      e.target.value
-                        .split(",")
-                        .map((t) => t.trim())
-                        .filter(Boolean)
-                    )
-                  }
-                />
-              </div>
             </CardContent>
           </Card>
         </div>

@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 const PUBLIC_PATHS = ["/login"];
 
 // Admin-only routes — writers cannot access these
-const ADMIN_ONLY_PATHS = ["/home-config", "/users", "/notifications", "/settings"];
+const ADMIN_ONLY_PATHS = ["/users", "/notifications", "/settings"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -41,8 +41,8 @@ export const config = {
      * Match all paths except:
      * - api (proxied to backend via rewrites)
      * - _next/static, _next/image (Next.js internals)
-     * - favicon.ico, images, icons, fonts (static assets)
+     * - any file with extension (static assets, e.g. .png, .jpg, .svg)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|images|icons|fonts).*)",
+    "/((?!api|_next/static|_next/image|.*\\..*).*)",
   ],
 };

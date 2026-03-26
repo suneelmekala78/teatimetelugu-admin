@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { toast } from "sonner";
-import { Loader2, Mail, User as UserIcon, KeyRound } from "lucide-react";
+import { Loader2, Mail, User as UserIcon, KeyRound, Eye, EyeOff } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { userApi } from "@/lib/api/users";
@@ -44,6 +44,7 @@ export default function EditUserPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const { data: user, isLoading } = useQuery({
     queryKey: ["users", id],
@@ -207,13 +208,28 @@ export default function EditUserPage({
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  placeholder="Minimum 6 characters"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="Minimum 6 characters"
+                    className="pr-10"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    aria-label={showNewPassword ? "Hide password" : "Show password"}
+                    onClick={() => setShowNewPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
               <Button
                 onClick={() => passwordMutation.mutate()}

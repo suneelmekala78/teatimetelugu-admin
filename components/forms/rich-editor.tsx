@@ -65,8 +65,8 @@ function InstagramIcon({ className }: { className?: string }) {
 
 /* --- Iframe with React NodeView for labeled preview --- */
 
-function IframeNodeView({ node }: { node: { attrs: { src: string } } }) {
-  const src = node.attrs.src || "";
+function IframeNodeView({ node }: { node: { attrs: Record<string, unknown> } }) {
+  const src = (node.attrs.src as string) || "";
   let label = "Embed";
   let labelColor = "bg-gray-500";
   let icon: React.ReactNode = null;
@@ -140,7 +140,7 @@ const IframeNode = Node.create({
 
 /* --- Video with React NodeView for labeled preview --- */
 
-function VideoNodeView({ node }: { node: { attrs: { src: string } } }) {
+function VideoNodeView({ node }: { node: { attrs: Record<string, unknown> } }) {
   return (
     <NodeViewWrapper className="my-4">
       <div className="relative rounded-lg overflow-hidden border border-border/50 shadow-sm">
@@ -149,7 +149,7 @@ function VideoNodeView({ node }: { node: { attrs: { src: string } } }) {
           Video
         </div>
         <video
-          src={node.attrs.src}
+          src={node.attrs.src as string}
           controls
           className="w-full"
         />

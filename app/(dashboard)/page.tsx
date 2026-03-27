@@ -26,6 +26,31 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+
+function ArticleRowSkeleton() {
+  return (
+    <div className="flex items-center gap-4 py-3.5 first:pt-0 last:pb-0 -mx-6 px-6">
+      <Skeleton className="h-14 w-22 rounded-lg shrink-0" />
+      <div className="flex-1 min-w-0 space-y-2">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-3 w-1/3" />
+      </div>
+      <Skeleton className="h-5 w-16 rounded-full" />
+      <Skeleton className="h-4 w-10" />
+    </div>
+  );
+}
+
+function ArticleListSkeleton({ count = 5 }: { count?: number }) {
+  return (
+    <div className="divide-y divide-border/50">
+      {Array.from({ length: count }).map((_, i) => (
+        <ArticleRowSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
 
 function ArticleRow({ article, metric }: { article: News; metric: React.ReactNode }) {
   return (
@@ -56,41 +81,43 @@ function ArticleRow({ article, metric }: { article: News; metric: React.ReactNod
 }
 
 export default function DashboardPage() {
-  const { data: newsData } = useQuery({
+  const { data: newsData, isPending: newsLoading } = useQuery({
     queryKey: ["news", { page: 1, limit: 5, sortBy: "createdAt", order: "desc" }],
     queryFn: () => newsApi.getAll({ page: 1, limit: 5, sortBy: "createdAt", order: "desc" }),
     select: (res) => res.data,
   });
 
-  const { data: mostViewedData } = useQuery({
+  const { data: mostViewedData, isPending: viewedLoading } = useQuery({
     queryKey: ["news", { page: 1, limit: 5, sortBy: "viewCount", order: "desc" }],
     queryFn: () => newsApi.getAll({ page: 1, limit: 5, sortBy: "viewCount", order: "desc" }),
     select: (res) => res.data,
   });
 
-  const { data: mostReactedData } = useQuery({
+  const { data: mostReactedData, isPending: reactedLoading } = useQuery({
     queryKey: ["news", { page: 1, limit: 5, sortBy: "reactionsCount", order: "desc" }],
     queryFn: () => newsApi.getAll({ page: 1, limit: 5, sortBy: "reactionsCount", order: "desc" }),
     select: (res) => res.data,
   });
 
-  const { data: mostCommentedData } = useQuery({
+  const { data: mostCommentedData, isPending: commentedLoading } = useQuery({
     queryKey: ["news", { page: 1, limit: 5, sortBy: "commentsCount", order: "desc" }],
     queryFn: () => newsApi.getAll({ page: 1, limit: 5, sortBy: "commentsCount", order: "desc" }),
     select: (res) => res.data,
   });
 
-  const { data: videoData } = useQuery({
+  const { data: videoData, isPending: videoLoading } = useQuery({
     queryKey: ["videos", { page: 1, limit: 1 }],
     queryFn: () => videoApi.getAll({ page: 1, limit: 1 }),
     select: (res) => res.data,
   });
 
-  const { data: galleryData } = useQuery({
+  const { data: galleryData, isPending: galleryLoading } = useQuery({
     queryKey: ["gallery", { page: 1, limit: 1 }],
     queryFn: () => galleryApi.getAll({ page: 1, limit: 1 }),
     select: (res) => res.data,
   });
+
+  const statsLoading = newsLoading || videoLoading || galleryLoading;
 
   const stats = [
     {
@@ -137,9 +164,13 @@ export default function DashboardPage() {
                       {stat.title}
                     </p>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold font-heading tracking-tight">
-                        {stat.value}
-                      </span>
+                      {statsLoading ? (
+                        <Skeleton className="h-9 w-16" />
+                      ) : (
+                        <span className="text-3xl font-bold font-heading tracking-tight">
+                          {stat.value}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div
@@ -180,7 +211,9 @@ export default function DashboardPage() {
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          {newsData?.news?.length ? (
+          {newsLoading ? (
+            <ArticleListSkeleton />
+          ) : newsData?.news?.length ? (
             <div className="divide-y divide-border/50">
               {newsData.news.map((article: News) => (
                 <ArticleRow
@@ -218,7 +251,9 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            {mostViewedData?.news?.length ? (
+            {viewedLoading ? (
+              <ArticleListSkeleton />
+            ) : mostViewedData?.news?.length ? (
               <div className="divide-y divide-border/50">
                 {mostViewedData.news.map((article: News) => (
                   <ArticleRow
@@ -251,7 +286,9 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            {mostReactedData?.news?.length ? (
+            {reactedLoading ? (
+              <ArticleListSkeleton />
+            ) : mostReactedData?.news?.length ? (
               <div className="divide-y divide-border/50">
                 {mostReactedData.news.map((article: News) => (
                   <ArticleRow
@@ -285,7 +322,9 @@ export default function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
-          {mostCommentedData?.news?.length ? (
+          {commentedLoading ? (
+            <ArticleListSkeleton />
+          ) : mostCommentedData?.news?.length ? (
             <div className="divide-y divide-border/50">
               {mostCommentedData.news.map((article: News) => (
                 <ArticleRow

@@ -91,6 +91,13 @@ function NewsActions({ news }: { news: News }) {
     mutationFn: () => newsApi.delete(news._id),
     onSuccess: () => {
       toast.success("Article deleted");
+      queryClient.setQueriesData(
+        { queryKey: ["news"] },
+        (old: any) => {
+          if (!old?.data?.news) return old;
+          return { ...old, data: { ...old.data, news: old.data.news.filter((n: any) => n._id !== news._id) } };
+        }
+      );
       queryClient.invalidateQueries({ queryKey: ["news"] });
       setShowDelete(false);
     },

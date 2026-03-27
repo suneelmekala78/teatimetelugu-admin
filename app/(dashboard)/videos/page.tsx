@@ -83,6 +83,13 @@ function VideoActions({ video }: { video: Video }) {
     mutationFn: () => videoApi.delete(video._id),
     onSuccess: () => {
       toast.success("Video deleted");
+      queryClient.setQueriesData(
+        { queryKey: ["videos"] },
+        (old: any) => {
+          if (!old?.data?.videos) return old;
+          return { ...old, data: { ...old.data, videos: old.data.videos.filter((v: any) => v._id !== video._id) } };
+        }
+      );
       queryClient.invalidateQueries({ queryKey: ["videos"] });
       setShowDelete(false);
     },

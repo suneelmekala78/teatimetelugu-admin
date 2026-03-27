@@ -86,7 +86,18 @@ function GalleryActions({ gallery }: { gallery: Gallery }) {
   const queryClient = useQueryClient();
   const deleteMutation = useMutation({
     mutationFn: () => galleryApi.delete(gallery._id),
-    onSuccess: () => { toast.success("Gallery deleted"); queryClient.invalidateQueries({ queryKey: ["gallery"] }); setShowDelete(false); },
+    onSuccess: () => {
+      toast.success("Gallery deleted");
+      queryClient.setQueriesData(
+        { queryKey: ["gallery"] },
+        (old: any) => {
+          if (!old?.data?.galleries) return old;
+          return { ...old, data: { ...old.data, galleries: old.data.galleries.filter((g: any) => g._id !== gallery._id) } };
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: ["gallery"] });
+      setShowDelete(false);
+    },
     onError: (err: unknown) => {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to delete";
       toast.error(message);

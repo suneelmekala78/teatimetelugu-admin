@@ -18,6 +18,24 @@ interface RefreshApiResponse {
   accessToken: string;
 }
 
+interface SessionDevice {
+  userAgent: string;
+  ip: string;
+  name: string | null;
+}
+
+interface Session {
+  _id: string;
+  device: SessionDevice;
+  createdAt: string;
+  expiresAt: string;
+}
+
+interface SessionsApiResponse {
+  success: boolean;
+  sessions: Session[];
+}
+
 export const authApi = {
   login(email: string, password: string) {
     return api.post<LoginApiResponse>("/auth/login", { email, password });
@@ -25,6 +43,10 @@ export const authApi = {
 
   getMe() {
     return api.get<MeApiResponse>("/auth/me");
+  },
+
+  getSessions() {
+    return api.get<SessionsApiResponse>("/auth/sessions");
   },
 
   logout() {

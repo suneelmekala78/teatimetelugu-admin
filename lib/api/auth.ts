@@ -37,6 +37,19 @@ interface SessionsApiResponse {
   sessions: Session[];
 }
 
+interface HistorySession {
+  _id: string;
+  device: SessionDevice;
+  createdAt: string;
+  lastUsedAt: string;
+  updatedAt: string;
+}
+
+interface HistoryApiResponse {
+  success: boolean;
+  history: HistorySession[];
+}
+
 interface UpdateMePayload {
   fullName?: string;
   email?: string;
@@ -67,6 +80,10 @@ export const authApi = {
 
   getSessions() {
     return api.get<SessionsApiResponse>("/auth/sessions");
+  },
+
+  getLoginHistory() {
+    return api.get<HistoryApiResponse>("/auth/sessions/history");
   },
 
   logoutSession(sessionId: string) {

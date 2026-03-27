@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores";
 import { authApi } from "@/lib/api";
@@ -11,17 +11,19 @@ function clearAuthCookies() {
 
 export function useAuth({ requireAuth = true, requiredRole }: { requireAuth?: boolean; requiredRole?: "admin" } = {}) {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, setUser, clearUser, setLoading } =
-    useAuthStore();
-
-  const handleUnauthenticated = useCallback(() => {
-    clearUser();
-    localStorage.removeItem("accessToken");
-    clearAuthCookies();
-    if (requireAuth) router.replace("/login");
-  }, [requireAuth, clearUser, router]);
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const checkedRef = useRef(false);
 
   useEffect(() => {
+    const { setUser, clearUser, setLoading } = useAuthStore.getState();
+
+    function handleUnauthenticated() {
+      clearUser();
+      localStorage.removeItem("accessToken");
+      clearAuthCookies();
+      if (requireAuth) router.replace("/login");
+    }
+
     const token = localStorage.getItem("accessToken");
 
     if (!token) {
@@ -29,15 +31,20 @@ export function useAuth({ requireAuth = true, requiredRole }: { requireAuth?: bo
       return;
     }
 
-    if (isAuthenticated && user) {
-      // Check role requirement even if already authenticated
-      if (requiredRole && user.role !== requiredRole) {
+    // Already checked & authenticated — just validate role
+    const state = useAuthStore.getState();
+    if (state.isAuthenticated && state.user) {
+      if (requiredRole && state.user.role !== requiredRole) {
         router.replace("/");
         return;
       }
       setLoading(false);
       return;
     }
+
+    // Prevent duplicate getMe calls in strict mode
+    if (checkedRef.current) return;
+    checkedRef.current = true;
 
     authApi
       .getMe()
@@ -55,9 +62,10 @@ export function useAuth({ requireAuth = true, requiredRole }: { requireAuth?: bo
         setUser(u);
       })
       .catch(() => {
+        checkedRef.current = false;
         handleUnauthenticated();
       });
-  }, [requireAuth, requiredRole, isAuthenticated, user, setLoading, setUser, handleUnauthenticated, router]);
+  }, [requireAuth, requiredRole, router]);
 
   return { user, isAuthenticated, isLoading };
 }

@@ -20,6 +20,7 @@ import {
   Lock,
   Globe,
   Wifi,
+  History,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -53,7 +54,6 @@ import {
 
 function parseOS(ua: string): string {
   if (/Windows NT 10/.test(ua)) {
-    // Windows 11 reports as NT 10.0 but has a higher build
     return /Windows NT 10\.0.*Build\/(2[2-9]\d{3}|[3-9]\d{4})/.test(ua)
       ? "Windows 11"
       : "Windows 10";
@@ -90,20 +90,13 @@ function parseDevice(ua: string): { icon: typeof Monitor; label: string; os: str
   const os = parseOS(ua);
   const browser = parseBrowser(ua);
 
-  if (/iPhone/.test(ua)) {
-    return { icon: Smartphone, label: "iPhone", os, browser };
-  }
-  if (/iPad/.test(ua)) {
-    return { icon: Smartphone, label: "iPad", os, browser };
-  }
+  if (/iPhone/.test(ua)) return { icon: Smartphone, label: "iPhone", os, browser };
+  if (/iPad/.test(ua)) return { icon: Smartphone, label: "iPad", os, browser };
   if (/Android/.test(ua) && /Mobile/.test(ua)) {
     const m = ua.match(/;\s*([^;)]+)\s*Build/);
-    const model = m ? m[1].trim() : "Android Phone";
-    return { icon: Smartphone, label: model, os, browser };
+    return { icon: Smartphone, label: m ? m[1].trim() : "Android Phone", os, browser };
   }
-  if (/Android/.test(ua)) {
-    return { icon: Smartphone, label: "Android Tablet", os, browser };
-  }
+  if (/Android/.test(ua)) return { icon: Smartphone, label: "Android Tablet", os, browser };
   return { icon: Laptop, label: os, os, browser };
 }
 
@@ -118,6 +111,66 @@ function useLogoutAndRedirect() {
     document.cookie = "role=;path=/;max-age=0";
     router.replace("/login");
   };
+}
+
+/* ── Session Row (reused in both active & history) ─────────────────── */
+
+function SessionRow({
+  session,
+  isActive,
+  onTerminate,
+}: {
+  session: { _id: string; device?: { userAgent?: string; ip?: string; name?: string | null }; createdAt: string; lastUsedAt?: string; updatedAt?: string };
+  isActive?: boolean;
+  onTerminate?: (id: string) => void;
+}) {
+  const ua = session.device?.userAgent || "";
+  const info = parseDevice(ua);
+  const DeviceIcon = info.icon;
+
+  return (
+    <div className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <DeviceIcon className="h-5 w-5 text-primary" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-sm font-medium truncate">{info.label}</p>
+          <Badge variant="secondary" className="text-[10px] shrink-0">
+            {info.browser}
+          </Badge>
+        </div>
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <Globe className="h-3 w-3" />
+            {info.os}
+          </span>
+          {session.device?.ip && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Wifi className="h-3 w-3" />
+              {session.device.ip}
+            </span>
+          )}
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {isActive
+              ? formatDistanceToNow(new Date(session.createdAt), { addSuffix: true })
+              : format(new Date(session.createdAt), "MMM dd, yyyy, hh:mm a")}
+          </span>
+        </div>
+      </div>
+      {isActive && onTerminate && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+          onClick={() => onTerminate(session._id)}
+        >
+          <LogOut className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
+  );
 }
 
 /* ── Main Page ─────────────────────────────────────────────────────── */
@@ -141,19 +194,24 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   // Logout dialogs
-  const [logoutDialog, setLogoutDialog] = useState<
-    null | "this" | "all" | "others"
-  >(null);
+  const [logoutDialog, setLogoutDialog] = useState<null | "this" | "all" | "others">(null);
   const [sessionToKill, setSessionToKill] = useState<string | null>(null);
 
-  // Sessions query
+  // Active sessions
   const { data: sessions, isPending: sessionsLoading } = useQuery({
     queryKey: ["sessions"],
     queryFn: () => authApi.getSessions(),
     select: (res) => res.data.sessions,
   });
 
-  // Update profile mutation
+  // Login history
+  const { data: history, isPending: historyLoading } = useQuery({
+    queryKey: ["login-history"],
+    queryFn: () => authApi.getLoginHistory(),
+    select: (res) => res.data.history,
+  });
+
+  // Mutations
   const updateMeMutation = useMutation({
     mutationFn: (data: { fullName?: string; email?: string; avatar?: string }) =>
       authApi.updateMe(data),
@@ -166,7 +224,6 @@ export default function SettingsPage() {
       toast.error(err?.response?.data?.message || "Failed to update profile"),
   });
 
-  // Change password mutation
   const changePasswordMutation = useMutation({
     mutationFn: (data: { currentPassword: string; newPassword: string }) =>
       authApi.changeMyPassword(data),
@@ -179,41 +236,33 @@ export default function SettingsPage() {
       toast.error(err?.response?.data?.message || "Failed to change password"),
   });
 
-  // Logout this device
   const logoutThisMutation = useMutation({
     mutationFn: () => authApi.logout(),
-    onSuccess: () => {
-      toast.success("Logged out");
-      doLogoutRedirect();
-    },
+    onSuccess: () => { toast.success("Logged out"); doLogoutRedirect(); },
   });
 
-  // Logout all devices
   const logoutAllMutation = useMutation({
     mutationFn: () => authApi.logoutAll(),
-    onSuccess: () => {
-      toast.success("Logged out from all devices");
-      doLogoutRedirect();
-    },
+    onSuccess: () => { toast.success("Logged out from all devices"); doLogoutRedirect(); },
   });
 
-  // Logout all except this
   const logoutOthersMutation = useMutation({
     mutationFn: () => authApi.logoutOthers(),
     onSuccess: () => {
       toast.success("All other sessions terminated");
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["login-history"] });
       setLogoutDialog(null);
     },
     onError: () => toast.error("Failed to terminate other sessions"),
   });
 
-  // Kill specific session
   const killSessionMutation = useMutation({
     mutationFn: (id: string) => authApi.logoutSession(id),
     onSuccess: () => {
       toast.success("Session terminated");
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["login-history"] });
       setSessionToKill(null);
     },
     onError: () => toast.error("Failed to terminate session"),
@@ -229,27 +278,16 @@ export default function SettingsPage() {
 
   function handleSaveProfile() {
     const changes: Record<string, string> = {};
-    if (fullName.trim() && fullName.trim() !== user?.fullName)
-      changes.fullName = fullName.trim();
-    if (email.trim() && email.trim() !== user?.email)
-      changes.email = email.trim();
+    if (fullName.trim() && fullName.trim() !== user?.fullName) changes.fullName = fullName.trim();
+    if (email.trim() && email.trim() !== user?.email) changes.email = email.trim();
     if (avatar !== (user?.avatar || "")) changes.avatar = avatar;
-    if (Object.keys(changes).length === 0) {
-      setEditMode(false);
-      return;
-    }
+    if (Object.keys(changes).length === 0) { setEditMode(false); return; }
     updateMeMutation.mutate(changes);
   }
 
   function handleChangePassword() {
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords don't match");
-      return;
-    }
-    if (newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
+    if (newPassword !== confirmPassword) { toast.error("Passwords don't match"); return; }
+    if (newPassword.length < 6) { toast.error("Password must be at least 6 characters"); return; }
     changePasswordMutation.mutate({ currentPassword, newPassword });
   }
 
@@ -260,162 +298,130 @@ export default function SettingsPage() {
         description="Account details and session management"
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* ── Profile Card ──────────────────────────────────────────── */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <UserIcon className="h-5 w-5" />
-                Profile
-              </CardTitle>
-              <CardDescription>Your account information</CardDescription>
+      {/* ── Profile Card ──────────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <UserIcon className="h-5 w-5" />
+              Profile
+            </CardTitle>
+            <CardDescription>Your account information</CardDescription>
+          </div>
+          {user && !editMode && (
+            <Button variant="outline" size="sm" onClick={startEdit}>
+              <Pencil className="h-4 w-4 mr-1" />
+              Edit
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!user ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-16 w-16 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              </div>
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-4 w-36" />
             </div>
-            {user && !editMode && (
-              <Button variant="outline" size="sm" onClick={startEdit}>
-                <Pencil className="h-4 w-4 mr-1" />
-                Edit
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!user ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-16 w-16 rounded-full" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-4 w-16" />
-                  </div>
-                </div>
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="h-4 w-36" />
-              </div>
-            ) : editMode ? (
-              <div className="space-y-4">
-                {/* Avatar */}
-                <div className="flex justify-center">
-                  <div className="w-24 h-24 rounded-full overflow-hidden">
-                    <ImageUpload
-                      value={avatar}
-                      onChange={setAvatar}
-                      folder="avatar"
-                      className="!w-24 !h-24 !rounded-full"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+          ) : editMode ? (
+            <div className="space-y-4 max-w-md">
+              <div className="flex justify-center">
+                <div className="w-24 h-24 rounded-full overflow-hidden">
+                  <ImageUpload
+                    value={avatar}
+                    onChange={setAvatar}
+                    folder="avatar"
+                    className="!w-24 !h-24 !rounded-full"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    onClick={handleSaveProfile}
-                    disabled={updateMeMutation.isPending}
-                    size="sm"
-                  >
-                    {updateMeMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Save
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEditMode(false)}
-                    disabled={updateMeMutation.isPending}
-                  >
-                    Cancel
-                  </Button>
-                </div>
               </div>
-            ) : (
-              <>
-                <div className="flex items-center gap-4">
-                  {user.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt=""
-                      className="h-16 w-16 rounded-full object-cover ring-2 ring-border"
-                    />
-                  ) : (
-                    <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-border">
-                      <UserIcon className="h-7 w-7 text-primary" />
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-lg font-semibold">{user.fullName}</p>
-                    <p className="text-sm text-muted-foreground capitalize">
-                      {user.role}
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-3 pt-2">
-                  <div className="flex items-center gap-3 text-sm">
-                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span>{user.email}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <Shield className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="capitalize">{user.role}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span>
-                      Joined {format(new Date(user.createdAt), "MMM dd, yyyy")}
-                    </span>
-                  </div>
-                  {user.lastLoginAt && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span>
-                        Last login{" "}
-                        {format(
-                          new Date(user.lastLoginAt),
-                          "MMM dd, yyyy, hh:mm a"
-                        )}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <Separator />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setCurrentPassword("");
-                    setNewPassword("");
-                    setConfirmPassword("");
-                    setShowPasswordDialog(true);
-                  }}
-                >
-                  <Lock className="h-4 w-4 mr-1" />
-                  Change Password
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button onClick={handleSaveProfile} disabled={updateMeMutation.isPending} size="sm">
+                  {updateMeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save
                 </Button>
-              </>
-            )}
-          </CardContent>
-        </Card>
+                <Button variant="outline" size="sm" onClick={() => setEditMode(false)} disabled={updateMeMutation.isPending}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-4">
+                {user.avatar ? (
+                  <img src={user.avatar} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-border" />
+                ) : (
+                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-border">
+                    <UserIcon className="h-7 w-7 text-primary" />
+                  </div>
+                )}
+                <div>
+                  <p className="text-lg font-semibold">{user.fullName}</p>
+                  <p className="text-sm text-muted-foreground capitalize">{user.role}</p>
+                </div>
+              </div>
+              <div className="grid gap-3 pt-2 sm:grid-cols-2">
+                <div className="flex items-center gap-3 text-sm">
+                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="truncate">{user.email}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <Shield className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="capitalize">{user.role}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span>Joined {format(new Date(user.createdAt), "MMM dd, yyyy")}</span>
+                </div>
+                {user.lastLoginAt && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span>Last login {format(new Date(user.lastLoginAt), "MMM dd, yyyy, hh:mm a")}</span>
+                  </div>
+                )}
+              </div>
+              <Separator />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setCurrentPassword("");
+                  setNewPassword("");
+                  setConfirmPassword("");
+                  setShowPasswordDialog(true);
+                }}
+              >
+                <Lock className="h-4 w-4 mr-1" />
+                Change Password
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* ── Active Sessions Card ──────────────────────────────────── */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Monitor className="h-5 w-5" />
-              Active Sessions
+              Active Devices
+              {sessions && (
+                <Badge variant="secondary" className="ml-1">{sessions.length}</Badge>
+              )}
             </CardTitle>
             <CardDescription>
               Devices currently logged into your account
@@ -436,93 +442,71 @@ export default function SettingsPage() {
               </div>
             ) : sessions?.length ? (
               <div className="space-y-2">
-                {sessions.map((session) => {
-                  const ua = session.device?.userAgent || "";
-                  const info = parseDevice(ua);
-                  const DeviceIcon = info.icon;
-
-                  return (
-                    <div
-                      key={session._id}
-                      className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <DeviceIcon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium truncate">
-                            {info.label}
-                          </p>
-                          <Badge variant="secondary" className="text-[10px] shrink-0">
-                            {info.browser}
-                          </Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Globe className="h-3 w-3" />
-                            {info.os}
-                          </span>
-                          {session.device?.ip && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Wifi className="h-3 w-3" />
-                              {session.device.ip}
-                            </span>
-                          )}
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDistanceToNow(new Date(session.createdAt), {
-                              addSuffix: true,
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                        onClick={() => setSessionToKill(session._id)}
-                      >
-                        <LogOut className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  );
-                })}
+                {sessions.map((session) => (
+                  <SessionRow
+                    key={session._id}
+                    session={session}
+                    isActive
+                    onTerminate={setSessionToKill}
+                  />
+                ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                No active sessions found
-              </p>
+              <p className="text-sm text-muted-foreground">No active sessions found</p>
             )}
 
             <Separator />
 
             <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setLogoutDialog("this")}
-              >
+              <Button variant="outline" size="sm" onClick={() => setLogoutDialog("this")}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout this device
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setLogoutDialog("others")}
-              >
+              <Button variant="outline" size="sm" onClick={() => setLogoutDialog("others")}>
                 <Monitor className="mr-2 h-4 w-4" />
                 Logout other devices
               </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setLogoutDialog("all")}
-              >
+              <Button variant="destructive" size="sm" onClick={() => setLogoutDialog("all")}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout all devices
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* ── Login History Card ─────────────────────────────────────── */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Login History
+            </CardTitle>
+            <CardDescription>
+              Recent login sessions (logged out or expired)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {historyLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-start gap-3 p-3">
+                    <Skeleton className="h-10 w-10 rounded-lg" />
+                    <div className="space-y-1.5 flex-1">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : history?.length ? (
+              <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                {history.map((session) => (
+                  <SessionRow key={session._id} session={session} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No login history yet</p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -539,52 +523,26 @@ export default function SettingsPage() {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="currentPwd">Current Password</Label>
-              <Input
-                id="currentPwd"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-              />
+              <Input id="currentPwd" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="newPwd">New Password</Label>
-              <Input
-                id="newPwd"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
+              <Input id="newPwd" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPwd">Confirm New Password</Label>
-              <Input
-                id="confirmPwd"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
+              <Input id="confirmPwd" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowPasswordDialog(false)}
-              disabled={changePasswordMutation.isPending}
-            >
+            <Button variant="outline" onClick={() => setShowPasswordDialog(false)} disabled={changePasswordMutation.isPending}>
               Cancel
             </Button>
             <Button
               onClick={handleChangePassword}
-              disabled={
-                changePasswordMutation.isPending ||
-                !currentPassword ||
-                !newPassword ||
-                !confirmPassword
-              }
+              disabled={changePasswordMutation.isPending || !currentPassword || !newPassword || !confirmPassword}
             >
-              {changePasswordMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {changePasswordMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Change Password
             </Button>
           </DialogFooter>
@@ -592,64 +550,37 @@ export default function SettingsPage() {
       </Dialog>
 
       {/* ── Logout Confirmation Dialogs ───────────────────────────── */}
-      <Dialog
-        open={logoutDialog !== null}
-        onOpenChange={(open) => !open && setLogoutDialog(null)}
-      >
+      <Dialog open={logoutDialog !== null} onOpenChange={(open) => !open && setLogoutDialog(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
               {logoutDialog === "this" && "Logout from this device?"}
               {logoutDialog === "all" && "Logout from all devices?"}
-              {logoutDialog === "others" &&
-                "Logout from all other devices?"}
+              {logoutDialog === "others" && "Logout from all other devices?"}
             </DialogTitle>
             <DialogDescription>
-              {logoutDialog === "this" &&
-                "You will be redirected to the login page."}
-              {logoutDialog === "all" &&
-                "All sessions including this one will be terminated. You will need to login again."}
-              {logoutDialog === "others" &&
-                "All sessions except the current one will be terminated. Other devices will need to login again."}
+              {logoutDialog === "this" && "You will be redirected to the login page."}
+              {logoutDialog === "all" && "All sessions including this one will be terminated. You will need to login again."}
+              {logoutDialog === "others" && "All sessions except the current one will be terminated. Other devices will need to login again."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLogoutDialog(null)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setLogoutDialog(null)}>Cancel</Button>
             {logoutDialog === "this" && (
-              <Button
-                variant="destructive"
-                onClick={() => logoutThisMutation.mutate()}
-                disabled={logoutThisMutation.isPending}
-              >
-                {logoutThisMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+              <Button variant="destructive" onClick={() => logoutThisMutation.mutate()} disabled={logoutThisMutation.isPending}>
+                {logoutThisMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Logout
               </Button>
             )}
             {logoutDialog === "all" && (
-              <Button
-                variant="destructive"
-                onClick={() => logoutAllMutation.mutate()}
-                disabled={logoutAllMutation.isPending}
-              >
-                {logoutAllMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+              <Button variant="destructive" onClick={() => logoutAllMutation.mutate()} disabled={logoutAllMutation.isPending}>
+                {logoutAllMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Logout All
               </Button>
             )}
             {logoutDialog === "others" && (
-              <Button
-                variant="destructive"
-                onClick={() => logoutOthersMutation.mutate()}
-                disabled={logoutOthersMutation.isPending}
-              >
-                {logoutOthersMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+              <Button variant="destructive" onClick={() => logoutOthersMutation.mutate()} disabled={logoutOthersMutation.isPending}>
+                {logoutOthersMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Logout Others
               </Button>
             )}
@@ -658,29 +589,20 @@ export default function SettingsPage() {
       </Dialog>
 
       {/* ── Kill Specific Session Dialog ──────────────────────────── */}
-      <Dialog
-        open={sessionToKill !== null}
-        onOpenChange={(open) => !open && setSessionToKill(null)}
-      >
+      <Dialog open={sessionToKill !== null} onOpenChange={(open) => !open && setSessionToKill(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Terminate session?</DialogTitle>
-            <DialogDescription>
-              This device will be logged out and need to sign in again.
-            </DialogDescription>
+            <DialogDescription>This device will be logged out and need to sign in again.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSessionToKill(null)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setSessionToKill(null)}>Cancel</Button>
             <Button
               variant="destructive"
               onClick={() => sessionToKill && killSessionMutation.mutate(sessionToKill)}
               disabled={killSessionMutation.isPending}
             >
-              {killSessionMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {killSessionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Terminate
             </Button>
           </DialogFooter>

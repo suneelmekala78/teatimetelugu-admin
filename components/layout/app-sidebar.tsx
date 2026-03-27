@@ -25,6 +25,7 @@ import {
   SidebarMenuButton,
   SidebarHeader,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuthStore } from "@/stores";
 
@@ -47,6 +48,11 @@ export function AppSidebar() {
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === "admin";
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  function closeMobileSidebar() {
+    if (isMobile) setOpenMobile(false);
+  }
 
   return (
     <Sidebar>
@@ -85,6 +91,7 @@ export function AppSidebar() {
                       render={<Link href={item.href} />}
                       isActive={isActive}
                       className="group/nav"
+                      onClick={closeMobileSidebar}
                     >
                       <item.icon className="h-[18px] w-[18px] shrink-0" />
                       <span className="text-[13px] font-medium">
@@ -118,6 +125,7 @@ export function AppSidebar() {
                         render={<Link href={item.href} />}
                         isActive={isActive}
                         className="group/nav"
+                        onClick={closeMobileSidebar}
                       >
                         <item.icon className="h-[18px] w-[18px] shrink-0" />
                         <span className="text-[13px] font-medium">

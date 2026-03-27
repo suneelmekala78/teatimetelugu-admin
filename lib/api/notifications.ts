@@ -8,8 +8,4 @@ export const notificationApi = {
   sendEmail(data: { to: string; subject: string; html: string; text?: string }) {
     return api.post<{ success: boolean; emailId: string }>("/notifications/email", data);
   },
-
-  sendSms(data: { to: string; message: string }) {
-    return api.post<{ success: boolean; sid: string }>("/notifications/sms", data);
-  },
 };

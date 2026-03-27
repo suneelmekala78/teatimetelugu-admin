@@ -38,8 +38,11 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    const isAuthEndpoint = originalRequest.url?.startsWith("/auth/");
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+    // Only skip refresh for public auth endpoints (login, register, refresh, etc.)
+    // Protected endpoints like /auth/me MUST go through the refresh flow
+    const publicAuthPaths = ["/auth/login", "/auth/register", "/auth/verify-registration", "/auth/refresh", "/auth/google", "/auth/forgot-password", "/auth/verify-otp", "/auth/reset-password"];
+    const isPublicAuth = publicAuthPaths.some((p) => originalRequest.url === p);
+    if (error.response?.status === 401 && !originalRequest._retry && !isPublicAuth) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });

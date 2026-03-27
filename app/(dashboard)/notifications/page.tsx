@@ -19,16 +19,14 @@ export default function NotificationsPage() {
   useAuth({ requiredRole: "admin" });
   return (
     <div className="space-y-6">
-      <PageHeader title="Notifications" description="Send push notifications, emails, and SMS" />
+      <PageHeader title="Notifications" description="Send push notifications and emails" />
       <Tabs defaultValue="push">
         <TabsList>
           <TabsTrigger value="push">Push Notification</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
-          <TabsTrigger value="sms">SMS</TabsTrigger>
         </TabsList>
         <TabsContent value="push" className="mt-6"><PushForm /></TabsContent>
         <TabsContent value="email" className="mt-6"><EmailForm /></TabsContent>
-        <TabsContent value="sms" className="mt-6"><SmsForm /></TabsContent>
       </Tabs>
     </div>
   );
@@ -86,32 +84,6 @@ function EmailForm() {
         <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !form.to || !form.subject || !form.html}>
           {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
           Send Email
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-function SmsForm() {
-  const [form, setForm] = useState({ to: "", message: "" });
-  const mutation = useMutation({
-    mutationFn: () => notificationApi.sendSms(form),
-    onSuccess: () => { toast.success("SMS sent"); setForm({ to: "", message: "" }); },
-    onError: (err: unknown) => {
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to send";
-      toast.error(message);
-    },
-  });
-
-  return (
-    <Card>
-      <CardHeader><CardTitle>Send SMS</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div><Label>Phone Number</Label><Input value={form.to} onChange={(e) => setForm((f) => ({ ...f, to: e.target.value }))} placeholder="+91..." /></div>
-        <div><Label>Message</Label><Textarea value={form.message} onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))} rows={3} /></div>
-        <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !form.to || !form.message}>
-          {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-          Send SMS
         </Button>
       </CardContent>
     </Card>

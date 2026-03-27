@@ -192,7 +192,7 @@ export default function NewsPage() {
               setFilters((f) => ({ ...f, status: !v || v === "all" ? "" : v, page: 1 }))
             }
           >
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-full sm:w-[150px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -218,7 +218,7 @@ export default function NewsPage() {
               }))
             }
           >
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-full sm:w-[150px]">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -240,7 +240,7 @@ export default function NewsPage() {
               setFilters((f) => ({ ...f, author: !v || v === "all" ? "" : v, page: 1 }))
             }
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Writer" />
             </SelectTrigger>
             <SelectContent>

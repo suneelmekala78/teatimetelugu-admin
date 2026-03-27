@@ -677,7 +677,7 @@ function MovieReleasesSection({
               </Button>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Movie (EN)</Label>
               <Input
@@ -943,7 +943,7 @@ function MovieCollectionsSection({
               </Button>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Movie (EN)</Label>
               <Input

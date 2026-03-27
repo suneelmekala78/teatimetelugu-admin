@@ -153,7 +153,7 @@ export default function GalleryPage() {
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Status</Label>
           <Select value={filters.status || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, status: !v || v === "all" ? "" : v, page: 1 }))}>
-            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               {STATUS_OPTIONS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
@@ -163,7 +163,7 @@ export default function GalleryPage() {
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Sub-category</Label>
           <Select value={filters.subCategory || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, subCategory: !v || v === "all" ? "" : v, page: 1 }))}>
-            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Sub-category" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Sub-category" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
               {gallerySubcategories.map((sc) => <SelectItem key={sc.value} value={sc.value}>{sc.label}</SelectItem>)}
@@ -173,7 +173,7 @@ export default function GalleryPage() {
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Writer</Label>
           <Select value={filters.author || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, author: !v || v === "all" ? "" : v, page: 1 }))}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Writer" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Writer" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Writers</SelectItem>
               {writersData?.map((u) => <SelectItem key={u._id} value={u._id}>{u.fullName}</SelectItem>)}

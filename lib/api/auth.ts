@@ -28,12 +28,24 @@ interface Session {
   _id: string;
   device: SessionDevice;
   createdAt: string;
+  lastUsedAt: string;
   expiresAt: string;
 }
 
 interface SessionsApiResponse {
   success: boolean;
   sessions: Session[];
+}
+
+interface UpdateMePayload {
+  fullName?: string;
+  email?: string;
+  avatar?: string;
+}
+
+interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export const authApi = {
@@ -45,8 +57,20 @@ export const authApi = {
     return api.get<MeApiResponse>("/auth/me");
   },
 
+  updateMe(data: UpdateMePayload) {
+    return api.patch<MeApiResponse>("/auth/me", data);
+  },
+
+  changeMyPassword(data: ChangePasswordPayload) {
+    return api.patch("/auth/me/password", data);
+  },
+
   getSessions() {
     return api.get<SessionsApiResponse>("/auth/sessions");
+  },
+
+  logoutSession(sessionId: string) {
+    return api.delete(`/auth/sessions/${sessionId}`);
   },
 
   logout() {
@@ -55,6 +79,10 @@ export const authApi = {
 
   logoutAll() {
     return api.post("/auth/logout-all");
+  },
+
+  logoutOthers() {
+    return api.post("/auth/logout-others");
   },
 
   refreshToken() {

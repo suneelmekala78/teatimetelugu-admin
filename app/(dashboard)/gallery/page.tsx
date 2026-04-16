@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { ExternalLink, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ExternalLink, MoreHorizontal, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import Link from "next/link";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { STATUS_OPTIONS, SITE_URLS } from "@/constants";
 import { getSubCategoryOptions } from "@/constants/categories";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const gallerySubcategories = getSubCategoryOptions("gallery");
@@ -133,7 +134,15 @@ function GalleryActions({ gallery }: { gallery: Gallery }) {
 }
 
 export default function GalleryPage() {
-  const [filters, setFilters] = useState<GalleryQuery>({ page: 1, limit: 10, status: "", subCategory: "", author: "", sortBy: "createdAt", order: "desc" });
+  const [filters, setFilters] = useState<GalleryQuery>({ page: 1, limit: 10, status: "", subCategory: "", author: "", search: "", sortBy: "createdAt", order: "desc" });
+
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSearch = (value: string) => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setFilters((f) => ({ ...f, search: value, page: 1 }));
+    }, 400);
+  };
   const { data, isLoading } = useQuery({
     queryKey: ["gallery", filters],
     queryFn: () => galleryApi.getAll(filters),
@@ -150,6 +159,17 @@ export default function GalleryPage() {
     <div className="space-y-6">
       <PageHeader title="Gallery" description="Manage photo galleries" createHref="/gallery/create" createLabel="New Gallery" />
       <div className="flex gap-4 flex-wrap">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Search</Label>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search galleries..."
+              className="pl-9 w-full sm:w-[220px]"
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+          </div>
+        </div>
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Status</Label>
           <Select value={filters.status || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, status: !v || v === "all" ? "" : v, page: 1 }))}>

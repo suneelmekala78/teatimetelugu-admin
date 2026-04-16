@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -51,6 +52,7 @@ export function NewsForm({ initialData }: NewsFormProps) {
     defaultValues: initialData
       ? {
           title: initialData.title,
+          shortNews: initialData.shortNews || { en: "", te: "" },
           thumbnail: initialData.thumbnail,
           description: initialData.description,
           category: initialData.category,
@@ -61,6 +63,7 @@ export function NewsForm({ initialData }: NewsFormProps) {
         }
       : {
           title: { en: "", te: "" },
+          shortNews: { en: "", te: "" },
           thumbnail: "",
           description: {
             en: { text: "", html: "" },
@@ -127,6 +130,63 @@ export function NewsForm({ initialData }: NewsFormProps) {
                   </p>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Short News</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="shortNews-en">English</Label>
+                  <span
+                    className={`text-xs ${
+                      (watch("shortNews.en")?.length || 0) > 400
+                        ? "text-destructive"
+                        : (watch("shortNews.en")?.length || 0) >= 180
+                          ? "text-green-600"
+                          : "text-muted-foreground"
+                    }`}
+                  >
+                    {watch("shortNews.en")?.length || 0}/400
+                  </span>
+                </div>
+                <Textarea
+                  id="shortNews-en"
+                  rows={4}
+                  placeholder="Short English summary (180–400 chars)..."
+                  {...register("shortNews.en")}
+                />
+              </div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="shortNews-te">Telugu</Label>
+                  <span
+                    className={`text-xs ${
+                      (watch("shortNews.te")?.length || 0) > 400
+                        ? "text-destructive"
+                        : (watch("shortNews.te")?.length || 0) >= 180
+                          ? "text-green-600"
+                          : "text-muted-foreground"
+                    }`}
+                  >
+                    {watch("shortNews.te")?.length || 0}/400
+                  </span>
+                </div>
+                <Textarea
+                  id="shortNews-te"
+                  rows={4}
+                  placeholder="తెలుగు సారాంశం (180–400 అక్షరాలు)..."
+                  {...register("shortNews.te")}
+                />
+              </div>
+              {errors.shortNews && (
+                <p className="text-sm text-destructive">
+                  {errors.shortNews.message}
+                </p>
+              )}
             </CardContent>
           </Card>
 

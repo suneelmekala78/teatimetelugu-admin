@@ -5,6 +5,21 @@ export const newsSchema = z.object({
     en: z.string().min(1, "English title is required"),
     te: z.string().min(1, "Telugu title is required"),
   }),
+  shortNews: z
+    .object({
+      en: z.string(),
+      te: z.string(),
+    })
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const checkLang = (text: string) =>
+          text === "" || (text.length >= 180 && text.length <= 400);
+        return checkLang(val.en) && checkLang(val.te);
+      },
+      { message: "Short news must be 180–400 characters (or empty)" },
+    ),
   thumbnail: z.string().min(1, "Thumbnail is required"),
   description: z.object({
     en: z.object({

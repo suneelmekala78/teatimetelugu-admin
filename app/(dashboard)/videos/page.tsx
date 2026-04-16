@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import Link from "next/link";
-import { ExternalLink, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ExternalLink, MoreHorizontal, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { videoApi, type VideoQuery } from "@/lib/api/videos";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { STATUS_OPTIONS, SITE_URLS } from "@/constants";
 import { getSubCategoryOptions } from "@/constants/categories";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const videoSubcategories = getSubCategoryOptions("videos");
@@ -137,7 +138,15 @@ function VideoActions({ video }: { video: Video }) {
 }
 
 export default function VideosPage() {
-  const [filters, setFilters] = useState<VideoQuery>({ page: 1, limit: 10, status: "", subCategory: "", author: "", sortBy: "createdAt", order: "desc" });
+  const [filters, setFilters] = useState<VideoQuery>({ page: 1, limit: 10, status: "", subCategory: "", author: "", search: "", sortBy: "createdAt", order: "desc" });
+
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSearch = (value: string) => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setFilters((f) => ({ ...f, search: value, page: 1 }));
+    }, 400);
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["videos", filters],
@@ -155,6 +164,17 @@ export default function VideosPage() {
     <div className="space-y-6">
       <PageHeader title="Videos" description="Manage video content" createHref="/videos/create" createLabel="Add Video" />
       <div className="flex gap-4 flex-wrap">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Search</Label>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search videos..."
+              className="pl-9 w-full sm:w-[220px]"
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+          </div>
+        </div>
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Status</Label>
           <Select value={filters.status || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, status: !v || v === "all" ? "" : v, page: 1 }))}>

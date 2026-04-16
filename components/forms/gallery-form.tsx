@@ -146,6 +146,44 @@ export function GalleryForm({ initialData }: GalleryFormProps) {
               {errors.images && <p className="text-sm text-destructive mt-1">{errors.images.message}</p>}
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Tags</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="gtags-en">English Tags (comma-separated)</Label>
+                <Input
+                  id="gtags-en"
+                  defaultValue={watch("tags.en")?.join(", ") || ""}
+                  onChange={(e) =>
+                    setValue(
+                      "tags.en",
+                      e.target.value
+                        .split(",")
+                        .map((t) => t.trim())
+                        .filter(Boolean),
+                    )
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="gtags-te">Telugu Tags (comma-separated)</Label>
+                <Input
+                  id="gtags-te"
+                  defaultValue={watch("tags.te")?.join(", ") || ""}
+                  onChange={(e) =>
+                    setValue(
+                      "tags.te",
+                      e.target.value
+                        .split(",")
+                        .map((t) => t.trim())
+                        .filter(Boolean),
+                    )
+                  }
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-6">

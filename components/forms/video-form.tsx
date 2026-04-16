@@ -99,7 +99,10 @@ export function VideoForm({ initialData }: VideoFormProps) {
     if (!videoUrl) return;
     const id = extractYouTubeId(videoUrl);
     if (id) {
-      setValue("thumbnail", `https://img.youtube.com/vi/${id}/maxresdefault.jpg`);
+      setValue(
+        "thumbnail",
+        `https://img.youtube.com/vi/${id}/maxresdefault.jpg`,
+      );
     }
   }, [videoUrl, setValue]);
 
@@ -119,22 +122,72 @@ export function VideoForm({ initialData }: VideoFormProps) {
                 <Label htmlFor="title-en">English Title</Label>
                 <Input id="title-en" {...register("title.en")} />
                 {errors.title?.en && (
-                  <p className="text-sm text-destructive mt-1">{errors.title.en.message}</p>
+                  <p className="text-sm text-destructive mt-1">
+                    {errors.title.en.message}
+                  </p>
                 )}
               </div>
               <div>
                 <Label htmlFor="title-te">Telugu Title</Label>
                 <Input id="title-te" {...register("title.te")} />
                 {errors.title?.te && (
-                  <p className="text-sm text-destructive mt-1">{errors.title.te.message}</p>
+                  <p className="text-sm text-destructive mt-1">
+                    {errors.title.te.message}
+                  </p>
                 )}
               </div>
               <div>
                 <Label htmlFor="videoUrl">Video URL</Label>
-                <Input id="videoUrl" placeholder="https://youtube.com/..." {...register("videoUrl")} />
+                <Input
+                  id="videoUrl"
+                  placeholder="https://youtube.com/..."
+                  {...register("videoUrl")}
+                />
                 {errors.videoUrl && (
-                  <p className="text-sm text-destructive mt-1">{errors.videoUrl.message}</p>
+                  <p className="text-sm text-destructive mt-1">
+                    {errors.videoUrl.message}
+                  </p>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Tags</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="vtags-en">English Tags (comma-separated)</Label>
+                <Input
+                  id="vtags-en"
+                  defaultValue={watch("tags.en")?.join(", ") || ""}
+                  onChange={(e) =>
+                    setValue(
+                      "tags.en",
+                      e.target.value
+                        .split(",")
+                        .map((t) => t.trim())
+                        .filter(Boolean),
+                    )
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="vtags-te">Telugu Tags (comma-separated)</Label>
+                <Input
+                  id="vtags-te"
+                  defaultValue={watch("tags.te")?.join(", ") || ""}
+                  onChange={(e) =>
+                    setValue(
+                      "tags.te",
+                      e.target.value
+                        .split(",")
+                        .map((t) => t.trim())
+                        .filter(Boolean),
+                    )
+                  }
+                />
               </div>
             </CardContent>
           </Card>
@@ -148,19 +201,42 @@ export function VideoForm({ initialData }: VideoFormProps) {
             <CardContent className="space-y-4">
               <div>
                 <Label>Status</Label>
-                <Controller control={control} name="status" render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )} />
+                <Controller
+                  control={control}
+                  name="status"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STATUS_OPTIONS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
               <div className="flex gap-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => router.back()}>Cancel</Button>
-                <Button type="submit" className="flex-1" disabled={mutation.isPending}>
-                  {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => router.back()}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={mutation.isPending}
+                >
+                  {mutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
                   {isEdit ? "Update" : "Create"}
                 </Button>
               </div>
@@ -168,7 +244,9 @@ export function VideoForm({ initialData }: VideoFormProps) {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Thumbnail</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Thumbnail</CardTitle>
+            </CardHeader>
             <CardContent>
               {thumbnail ? (
                 <img
@@ -181,36 +259,42 @@ export function VideoForm({ initialData }: VideoFormProps) {
                   Paste a YouTube URL above to auto-generate thumbnail
                 </div>
               )}
-              {errors.thumbnail && <p className="text-sm text-destructive mt-1">{errors.thumbnail.message}</p>}
+              {errors.thumbnail && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.thumbnail.message}
+                </p>
+              )}
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Sub-category</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Sub-category</CardTitle>
+            </CardHeader>
             <CardContent>
-              <Controller control={control} name="subCategory" render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger><SelectValue placeholder="Select sub-category" /></SelectTrigger>
-                  <SelectContent>
-                    {videoSubcategories.map((sc) => <SelectItem key={sc.value} value={sc.value}>{sc.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )} />
-              {errors.subCategory && <p className="text-sm text-destructive mt-1">{errors.subCategory.message}</p>}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>Tags</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="vtags-en">English Tags (comma-separated)</Label>
-                <Input id="vtags-en" defaultValue={watch("tags.en")?.join(", ") || ""} onChange={(e) => setValue("tags.en", e.target.value.split(",").map((t) => t.trim()).filter(Boolean))} />
-              </div>
-              <div>
-                <Label htmlFor="vtags-te">Telugu Tags (comma-separated)</Label>
-                <Input id="vtags-te" defaultValue={watch("tags.te")?.join(", ") || ""} onChange={(e) => setValue("tags.te", e.target.value.split(",").map((t) => t.trim()).filter(Boolean))} />
-              </div>
+              <Controller
+                control={control}
+                name="subCategory"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select sub-category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {videoSubcategories.map((sc) => (
+                        <SelectItem key={sc.value} value={sc.value}>
+                          {sc.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.subCategory && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.subCategory.message}
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

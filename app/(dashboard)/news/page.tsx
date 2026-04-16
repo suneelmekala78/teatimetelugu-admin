@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import Link from "next/link";
-import { ExternalLink, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ExternalLink, MoreHorizontal, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { newsApi, type NewsQuery } from "@/lib/api/news";
@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { CATEGORY_OPTIONS, STATUS_OPTIONS, SITE_URLS } from "@/constants";
 
 const columns: ColumnDef<News>[] = [
@@ -158,9 +159,18 @@ export default function NewsPage() {
     status: "",
     category: "",
     author: "",
+    search: "",
     sortBy: "createdAt",
     order: "desc",
   });
+
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSearch = (value: string) => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setFilters((f) => ({ ...f, search: value, page: 1 }));
+    }, 400);
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["news", filters],
@@ -184,6 +194,18 @@ export default function NewsPage() {
       />
 
       <div className="flex gap-4 flex-wrap">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Search</Label>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search articles..."
+              className="pl-9 w-full sm:w-[220px]"
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Status</Label>
           <Select

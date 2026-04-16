@@ -80,7 +80,7 @@ export const CATEGORIES = {
     },
   },
   business: {
-    label: { en: "Business", te: "వ్యాపారం" },
+    label: { en: "Business", te: "బిజినెస్" },
     subCategories: {
       national: { en: "National", te: "జాతీయం" },
       international: { en: "International", te: "అంతర్జాతీయం" },

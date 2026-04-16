@@ -56,6 +56,7 @@ export interface News {
   author: User | string;
   slug: string;
   title: BilingualText;
+  shortNews: BilingualText;
   thumbnail: string;
   description: BilingualDescription;
   category: string;

@@ -1204,10 +1204,11 @@ function AdsSection({
    Helpers
    =================================================================== */
 
-function getNewsId(news: string | News): string {
+function getNewsId(news: string | News | null): string {
+  if (!news) return "";
   return typeof news === "string" ? news : news._id;
 }
 
-function getNewsObj(news: string | News): News | null {
-  return typeof news === "object" ? news : null;
+function getNewsObj(news: string | News | null): News | null {
+  return news && typeof news === "object" ? news : null;
 }

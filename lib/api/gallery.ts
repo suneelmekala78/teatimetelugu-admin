@@ -7,6 +7,7 @@ export interface GalleryQuery {
   status?: string;
   subCategory?: string;
   author?: string;
+  search?: string;
   sortBy?: "createdAt" | "publishedAt" | "viewCount";
   order?: "asc" | "desc";
 }

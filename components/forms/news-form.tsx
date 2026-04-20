@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { ImageUpload } from "@/components/common";
 import { RichEditor } from "@/components/forms/rich-editor";
 import { newsSchema, type NewsFormValues } from "@/lib/validations";
@@ -192,55 +192,53 @@ export function NewsForm({ initialData }: NewsFormProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Description</CardTitle>
+              <CardTitle>English Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="en">
-                <TabsList>
-                  <TabsTrigger value="en">English</TabsTrigger>
-                  <TabsTrigger value="te">Telugu</TabsTrigger>
-                </TabsList>
-                <TabsContent value="en" className="mt-4">
-                  <Controller
-                    control={control}
-                    name="description.en"
-                    render={({ field }) => (
-                      <RichEditor
-                        content={field.value?.html || ""}
-                        onChange={(html, text) =>
-                          field.onChange({ html, text })
-                        }
-                        placeholder="Write English description..."
-                      />
-                    )}
+              <Controller
+                control={control}
+                name="description.en"
+                render={({ field }) => (
+                  <RichEditor
+                    content={field.value?.html || ""}
+                    onChange={(html, text) =>
+                      field.onChange({ html, text })
+                    }
+                    placeholder="Write English description..."
                   />
-                  {errors.description?.en?.text && (
-                    <p className="text-sm text-destructive mt-1">
-                      {errors.description.en.text.message}
-                    </p>
-                  )}
-                </TabsContent>
-                <TabsContent value="te" className="mt-4">
-                  <Controller
-                    control={control}
-                    name="description.te"
-                    render={({ field }) => (
-                      <RichEditor
-                        content={field.value?.html || ""}
-                        onChange={(html, text) =>
-                          field.onChange({ html, text })
-                        }
-                        placeholder="తెలుగు వివరణ రాయండి..."
-                      />
-                    )}
+                )}
+              />
+              {errors.description?.en?.text && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.description.en.text.message}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Telugu Description</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Controller
+                control={control}
+                name="description.te"
+                render={({ field }) => (
+                  <RichEditor
+                    content={field.value?.html || ""}
+                    onChange={(html, text) =>
+                      field.onChange({ html, text })
+                    }
+                    placeholder="తెలుగు వివరణ రాయండి..."
                   />
-                  {errors.description?.te?.text && (
-                    <p className="text-sm text-destructive mt-1">
-                      {errors.description.te.text.message}
-                    </p>
-                  )}
-                </TabsContent>
-              </Tabs>
+                )}
+              />
+              {errors.description?.te?.text && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.description.te.text.message}
+                </p>
+              )}
             </CardContent>
           </Card>
 

@@ -8,8 +8,6 @@ import {
   Plus,
   Trash2,
   Pencil,
-  X,
-  Check,
   Search,
   ArrowUp,
   ArrowDown,
@@ -21,6 +19,7 @@ import {
   Image as ImageIcon,
   Megaphone,
   AlertCircle,
+  Settings2,
 } from "lucide-react";
 
 import { homeApi } from "@/lib/api/home";
@@ -37,7 +36,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -46,6 +44,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import type {
   MovieEntry,
   CollectionEntry,
@@ -54,7 +69,7 @@ import type {
   PositionedRef,
 } from "@/types";
 
-/* ── Movie category options ─────────────────────────────────────── */
+/* ── Constants ─────────────────────────────────────────────────── */
 
 const RELEASE_CATEGORIES = [
   { value: "movie", en: "Movie", te: "సినిమా" },
@@ -67,12 +82,37 @@ const COLLECTION_CATEGORIES = [
   { value: "closing-ww", en: "Total WW", te: "మొత్తం WW" },
 ] as const;
 
+type SectionId =
+  | "breaking"
+  | "trending"
+  | "hot"
+  | "movies"
+  | "collections"
+  | "posters"
+  | "ads";
+
+const SECTIONS: {
+  id: SectionId;
+  label: string;
+  icon: React.ElementType;
+  color: string;
+}[] = [
+  { id: "breaking", label: "Breaking News", icon: Zap, color: "text-red-500" },
+  { id: "trending", label: "Trending", icon: TrendingUp, color: "text-blue-500" },
+  { id: "hot", label: "Hot Topics", icon: Flame, color: "text-orange-500" },
+  { id: "movies", label: "Movie Releases", icon: Film, color: "text-violet-500" },
+  { id: "collections", label: "Collections", icon: DollarSign, color: "text-emerald-500" },
+  { id: "posters", label: "Posters", icon: ImageIcon, color: "text-pink-500" },
+  { id: "ads", label: "Advertisements", icon: Megaphone, color: "text-amber-500" },
+];
+
 /* ===================================================================
    Main Page
    =================================================================== */
 
 export default function HomeConfigPage() {
   const queryClient = useQueryClient();
+  const [activeSection, setActiveSection] = useState<SectionId>("breaking");
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["home-config"],
@@ -92,6 +132,21 @@ export default function HomeConfigPage() {
           ?.message || "Update failed";
       toast.error(message);
     },
+  });
+
+  const getCounts = (cfg: HomeConfig): Record<SectionId, number> => ({
+    breaking: cfg.breakingNews.length,
+    trending: cfg.trendingNews.length,
+    hot: cfg.hotTopics.length,
+    movies: cfg.movieReleases.length,
+    collections: cfg.movieCollections.length,
+    posters: [cfg.posters.popup, cfg.posters.movie, cfg.posters.navbar].filter(
+      (p) => p.image,
+    ).length,
+    ads: [
+      cfg.ads.homeLong, cfg.ads.homeShort, cfg.ads.categoryLong,
+      cfg.ads.categoryShort, cfg.ads.newsLong, cfg.ads.newsShort,
+    ].filter((a) => a.image).length,
   });
 
   if (isLoading)
@@ -118,6 +173,8 @@ export default function HomeConfigPage() {
       </div>
     );
 
+  const counts = getCounts(config);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -125,106 +182,106 @@ export default function HomeConfigPage() {
         description="Manage the homepage sections — curated news, movies, posters and ads."
       />
 
-      <Tabs defaultValue="breaking">
-        <TabsList className="flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger value="breaking" className="gap-1.5">
-            <Zap className="h-3.5 w-3.5" />
-            Breaking News
-          </TabsTrigger>
-          <TabsTrigger value="trending" className="gap-1.5">
-            <TrendingUp className="h-3.5 w-3.5" />
-            Trending
-          </TabsTrigger>
-          <TabsTrigger value="hot" className="gap-1.5">
-            <Flame className="h-3.5 w-3.5" />
-            Hot Topics
-          </TabsTrigger>
-          <TabsTrigger value="movies" className="gap-1.5">
-            <Film className="h-3.5 w-3.5" />
-            Movie Releases
-          </TabsTrigger>
-          <TabsTrigger value="collections" className="gap-1.5">
-            <DollarSign className="h-3.5 w-3.5" />
-            Collections
-          </TabsTrigger>
-          <TabsTrigger value="posters" className="gap-1.5">
-            <ImageIcon className="h-3.5 w-3.5" />
-            Posters
-          </TabsTrigger>
-          <TabsTrigger value="ads" className="gap-1.5">
-            <Megaphone className="h-3.5 w-3.5" />
-            Ads
-          </TabsTrigger>
-        </TabsList>
+      <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+        {/* Sidebar Navigation */}
+        <nav className="space-y-1">
+          {SECTIONS.map((section) => {
+            const Icon = section.icon;
+            const isActive = activeSection === section.id;
+            const count = counts[section.id];
+            return (
+              <button
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left",
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                )}
+              >
+                <Icon
+                  className={cn(
+                    "h-4 w-4 shrink-0",
+                    isActive ? "text-primary-foreground" : section.color,
+                  )}
+                />
+                <span className="flex-1 truncate">{section.label}</span>
+                {count > 0 && (
+                  <Badge
+                    variant={isActive ? "secondary" : "outline"}
+                    className={cn(
+                      "h-5 min-w-[20px] justify-center text-[10px] px-1.5",
+                      isActive && "bg-primary-foreground/20 text-primary-foreground border-0",
+                    )}
+                  >
+                    {count}
+                  </Badge>
+                )}
+              </button>
+            );
+          })}
+        </nav>
 
-        <TabsContent value="breaking" className="mt-6">
-          <CuratedNewsSection
-            title="Breaking News"
-            description="Feature urgent/breaking news on the homepage ticker. These appear at the very top."
-            icon={<Zap className="h-5 w-5 text-red-500" />}
-            items={config.breakingNews}
-            fieldKey="breakingNews"
-            onSave={(items) =>
-              updateMutation.mutate({ breakingNews: items })
-            }
-            isSaving={updateMutation.isPending}
-          />
-        </TabsContent>
-
-        <TabsContent value="trending" className="mt-6">
-          <CuratedNewsSection
-            title="Trending News"
-            description="Curate up to 5 trending articles shown in the trending grid on the homepage."
-            icon={<TrendingUp className="h-5 w-5 text-blue-500" />}
-            items={config.trendingNews}
-            fieldKey="trendingNews"
-            maxItems={5}
-            onSave={(items) =>
-              updateMutation.mutate({ trendingNews: items })
-            }
-            isSaving={updateMutation.isPending}
-          />
-        </TabsContent>
-
-        <TabsContent value="hot" className="mt-6">
-          <CuratedNewsSection
-            title="Hot Topics"
-            description="Pick up to 10 hot topic articles for the scrollable section on the homepage."
-            icon={<Flame className="h-5 w-5 text-orange-500" />}
-            items={config.hotTopics}
-            fieldKey="hotTopics"
-            maxItems={10}
-            onSave={(items) =>
-              updateMutation.mutate({ hotTopics: items })
-            }
-            isSaving={updateMutation.isPending}
-          />
-        </TabsContent>
-
-        <TabsContent value="movies" className="mt-6">
-          <MovieReleasesSection releases={config.movieReleases} />
-        </TabsContent>
-
-        <TabsContent value="collections" className="mt-6">
-          <MovieCollectionsSection collections={config.movieCollections} />
-        </TabsContent>
-
-        <TabsContent value="posters" className="mt-6">
-          <PostersSection
-            config={config}
-            onUpdate={(data) => updateMutation.mutate(data)}
-            isUpdating={updateMutation.isPending}
-          />
-        </TabsContent>
-
-        <TabsContent value="ads" className="mt-6">
-          <AdsSection
-            config={config}
-            onUpdate={(data) => updateMutation.mutate(data)}
-            isUpdating={updateMutation.isPending}
-          />
-        </TabsContent>
-      </Tabs>
+        {/* Content Area */}
+        <div className="min-w-0">
+          {activeSection === "breaking" && (
+            <CuratedNewsSection
+              title="Breaking News"
+              description="Feature urgent/breaking news on the homepage ticker. These appear at the very top."
+              icon={<Zap className="h-5 w-5 text-red-500" />}
+              items={config.breakingNews}
+              fieldKey="breakingNews"
+              onSave={(items) => updateMutation.mutate({ breakingNews: items })}
+              isSaving={updateMutation.isPending}
+            />
+          )}
+          {activeSection === "trending" && (
+            <CuratedNewsSection
+              title="Trending News"
+              description="Curate up to 5 trending articles shown in the trending grid on the homepage."
+              icon={<TrendingUp className="h-5 w-5 text-blue-500" />}
+              items={config.trendingNews}
+              fieldKey="trendingNews"
+              maxItems={5}
+              onSave={(items) => updateMutation.mutate({ trendingNews: items })}
+              isSaving={updateMutation.isPending}
+            />
+          )}
+          {activeSection === "hot" && (
+            <CuratedNewsSection
+              title="Hot Topics"
+              description="Pick up to 10 hot topic articles for the scrollable section on the homepage."
+              icon={<Flame className="h-5 w-5 text-orange-500" />}
+              items={config.hotTopics}
+              fieldKey="hotTopics"
+              maxItems={10}
+              onSave={(items) => updateMutation.mutate({ hotTopics: items })}
+              isSaving={updateMutation.isPending}
+            />
+          )}
+          {activeSection === "movies" && (
+            <MovieReleasesSection releases={config.movieReleases} />
+          )}
+          {activeSection === "collections" && (
+            <MovieCollectionsSection collections={config.movieCollections} />
+          )}
+          {activeSection === "posters" && (
+            <PostersSection
+              config={config}
+              onUpdate={(data) => updateMutation.mutate(data)}
+              isUpdating={updateMutation.isPending}
+            />
+          )}
+          {activeSection === "ads" && (
+            <AdsSection
+              config={config}
+              onUpdate={(data) => updateMutation.mutate(data)}
+              isUpdating={updateMutation.isPending}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -338,28 +395,20 @@ function CuratedNewsSection({
     );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <SectionHeader icon={icon} title={title} description={description}>
+        {maxItems && (
+          <Badge variant="outline">
+            {localItems.length} / {maxItems}
+          </Badge>
+        )}
+      </SectionHeader>
+
       <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            {icon}
-            <div>
-              <CardTitle>{title}</CardTitle>
-              <CardDescription className="mt-1">{description}</CardDescription>
-            </div>
-          </div>
-          {maxItems && (
-            <Badge variant="outline" className="w-fit mt-2">
-              {localItems.length} / {maxItems} slots used
-            </Badge>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-4 space-y-4">
           {/* Current items */}
           {localItems.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
-              No articles added yet. Search and add articles below.
-            </div>
+            <EmptyState message="No articles added yet. Search and add articles below." />
           ) : (
             <div className="space-y-2">
               {localItems.map((item, index) => {
@@ -517,12 +566,9 @@ function CuratedNewsSection({
    Movie Releases
    =================================================================== */
 
-function MovieReleasesSection({
-  releases,
-}: {
-  releases: MovieEntry[];
-}) {
+function MovieReleasesSection({ releases }: { releases: MovieEntry[] }) {
   const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [form, setForm] = useState({
@@ -531,11 +577,21 @@ function MovieReleasesSection({
     category: { en: "", te: "" },
   });
 
-  const resetForm = () => setForm({
-    movie: { en: "", te: "" },
-    releaseDate: { en: "", te: "" },
-    category: { en: "", te: "" },
-  });
+  const resetForm = () =>
+    setForm({ movie: { en: "", te: "" }, releaseDate: { en: "", te: "" }, category: { en: "", te: "" } });
+
+  const openAdd = () => { resetForm(); setEditIndex(null); setDialogOpen(true); };
+
+  const openEdit = (index: number) => {
+    const r = releases[index];
+    setForm({
+      movie: { en: r.movie.en, te: r.movie.te },
+      releaseDate: { en: r.releaseDate.en, te: r.releaseDate.te },
+      category: { en: r.category.en, te: r.category.te },
+    });
+    setEditIndex(index);
+    setDialogOpen(true);
+  };
 
   const addMutation = useMutation({
     mutationFn: () => homeApi.addMovieRelease(form as MovieEntry),
@@ -543,11 +599,10 @@ function MovieReleasesSection({
       toast.success("Movie release added");
       queryClient.invalidateQueries({ queryKey: ["home-config"] });
       resetForm();
+      setDialogOpen(false);
     },
     onError: (err: unknown) => {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Failed to add";
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to add";
       toast.error(message);
     },
   });
@@ -559,11 +614,10 @@ function MovieReleasesSection({
       queryClient.invalidateQueries({ queryKey: ["home-config"] });
       resetForm();
       setEditIndex(null);
+      setDialogOpen(false);
     },
     onError: (err: unknown) => {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Failed to update";
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to update";
       toast.error(message);
     },
   });
@@ -577,205 +631,130 @@ function MovieReleasesSection({
     },
   });
 
-  const startEdit = (index: number) => {
-    const r = releases[index];
-    setForm({
-      movie: { en: r.movie.en, te: r.movie.te },
-      releaseDate: { en: r.releaseDate.en, te: r.releaseDate.te },
-      category: { en: r.category.en, te: r.category.te },
-    });
-    setEditIndex(index);
-  };
-
-  const cancelEdit = () => {
-    setEditIndex(null);
-    resetForm();
-  };
+  const isFormValid = form.movie.en && form.movie.te;
+  const isMutating = addMutation.isPending || editMutation.isPending;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <Film className="h-5 w-5 text-violet-500" />
-          <div>
-            <CardTitle>Movie Releases</CardTitle>
-            <CardDescription className="mt-1">
-              Manage upcoming movie release information shown on the homepage.
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {releases.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
-            No movie releases added yet.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {releases.map((r, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">
-                    {r.movie.en}{" "}
-                    <span className="text-muted-foreground">/ {r.movie.te}</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Release: {r.releaseDate.en} · Category: {r.category.en}
-                  </p>
-                </div>
-                <div className="flex items-center gap-0.5 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => startEdit(i)}
-                    disabled={editIndex !== null}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={() => setDeleteIndex(i)}
-                    disabled={removeMutation.isPending}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+    <div className="space-y-4">
+      <SectionHeader
+        icon={<Film className="h-5 w-5 text-violet-500" />}
+        title="Movie Releases"
+        description="Manage upcoming movie release information shown on the homepage."
+      >
+        <Button size="sm" onClick={openAdd}>
+          <Plus className="h-4 w-4 mr-1.5" />
+          Add Release
+        </Button>
+      </SectionHeader>
+
+      <Card>
+        <CardContent className="p-0">
+          {releases.length === 0 ? (
+            <div className="p-6">
+              <EmptyState message="No movie releases added yet." />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[40px]">#</TableHead>
+                  <TableHead>Movie</TableHead>
+                  <TableHead>Release Date</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="w-[80px] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {releases.map((r, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="font-medium text-muted-foreground">{i + 1}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-sm">{r.movie.en}</p>
+                        <p className="text-xs text-muted-foreground">{r.movie.te}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-sm">{r.releaseDate.en}</p>
+                        <p className="text-xs text-muted-foreground">{r.releaseDate.te}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="capitalize">{r.category.en}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-0.5">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(i)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteIndex(i)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>{editIndex !== null ? "Edit Movie Release" : "Add Movie Release"}</DialogTitle>
+            <DialogDescription>{editIndex !== null ? "Update the movie release details below." : "Fill in the details for the new movie release."}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Movie (EN)</Label>
+                <Input value={form.movie.en} onChange={(e) => setForm((f) => ({ ...f, movie: { ...f.movie, en: e.target.value } }))} placeholder="Movie name" />
               </div>
-            ))}
-          </div>
-        )}
-
-        <ConfirmDialog
-          open={deleteIndex !== null}
-          onOpenChange={(open) => !open && setDeleteIndex(null)}
-          title="Delete Movie Release"
-          description={
-            deleteIndex !== null
-              ? `Are you sure you want to delete "${releases[deleteIndex]?.movie?.en}"? This action cannot be undone.`
-              : ""
-          }
-          onConfirm={() => deleteIndex !== null && removeMutation.mutate(deleteIndex)}
-          isLoading={removeMutation.isPending}
-        />
-
-        <Separator />
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">
-              {editIndex !== null ? "Edit Release" : "Add New Release"}
-            </Label>
-            {editIndex !== null && (
-              <Button variant="ghost" size="sm" onClick={cancelEdit}>
-                <X className="h-3.5 w-3.5 mr-1" /> Cancel
-              </Button>
-            )}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Movie (EN)</Label>
-              <Input
-                value={form.movie.en}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    movie: { ...f.movie, en: e.target.value },
-                  }))
-                }
-                placeholder="Movie name in English"
-              />
+              <div className="space-y-1.5">
+                <Label className="text-xs">Movie (TE)</Label>
+                <Input value={form.movie.te} onChange={(e) => setForm((f) => ({ ...f, movie: { ...f.movie, te: e.target.value } }))} placeholder="సినిమా పేరు" />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Movie (TE)</Label>
-              <Input
-                value={form.movie.te}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    movie: { ...f.movie, te: e.target.value },
-                  }))
-                }
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Release Date (EN)</Label>
+                <Input value={form.releaseDate.en} onChange={(e) => setForm((f) => ({ ...f, releaseDate: { ...f.releaseDate, en: e.target.value } }))} placeholder="e.g. March 28, 2026" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Release Date (TE)</Label>
+                <Input value={form.releaseDate.te} onChange={(e) => setForm((f) => ({ ...f, releaseDate: { ...f.releaseDate, te: e.target.value } }))} placeholder="మార్చి 28, 2026" />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Release Date (EN)</Label>
-              <Input
-                value={form.releaseDate.en}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    releaseDate: { ...f.releaseDate, en: e.target.value },
-                  }))
-                }
-                placeholder="e.g. March 28, 2026"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Release Date (TE)</Label>
-              <Input
-                value={form.releaseDate.te}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    releaseDate: { ...f.releaseDate, te: e.target.value },
-                  }))
-                }
-              />
-            </div>
-            <div className="col-span-2 space-y-1">
-              <Label className="text-xs text-muted-foreground">Category</Label>
-              <Select
-                value={form.category.en || undefined}
-                onValueChange={(v) => {
-                  const opt = RELEASE_CATEGORIES.find((c) => c.value === v);
-                  if (opt) setForm((f) => ({ ...f, category: { en: opt.value, te: opt.te } }));
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {RELEASE_CATEGORIES.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>{c.en}</SelectItem>
-                  ))}
-                </SelectContent>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Category</Label>
+              <Select value={form.category.en || undefined} onValueChange={(v) => { const opt = RELEASE_CATEGORIES.find((c) => c.value === v); if (opt) setForm((f) => ({ ...f, category: { en: opt.value, te: opt.te } })); }}>
+                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>{RELEASE_CATEGORIES.map((c) => (<SelectItem key={c.value} value={c.value}>{c.en}</SelectItem>))}</SelectContent>
               </Select>
             </div>
           </div>
-          {editIndex !== null ? (
-            <Button
-              onClick={() => editMutation.mutate()}
-              disabled={editMutation.isPending || !form.movie.en || !form.movie.te}
-            >
-              {editMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="mr-2 h-4 w-4" />
-              )}
-              Update Release
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isMutating}>Cancel</Button>
+            <Button onClick={() => editIndex !== null ? editMutation.mutate() : addMutation.mutate()} disabled={isMutating || !isFormValid}>
+              {isMutating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {editIndex !== null ? "Update" : "Add"} Release
             </Button>
-          ) : (
-            <Button
-              onClick={() => addMutation.mutate()}
-              disabled={addMutation.isPending || !form.movie.en || !form.movie.te}
-            >
-              {addMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="mr-2 h-4 w-4" />
-              )}
-              Add Release
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={deleteIndex !== null}
+        onOpenChange={(open) => !open && setDeleteIndex(null)}
+        title="Delete Movie Release"
+        description={deleteIndex !== null ? `Are you sure you want to delete "${releases[deleteIndex]?.movie?.en}"? This action cannot be undone.` : ""}
+        onConfirm={() => deleteIndex !== null && removeMutation.mutate(deleteIndex)}
+        isLoading={removeMutation.isPending}
+      />
+    </div>
   );
 }
 
@@ -789,6 +768,7 @@ function MovieCollectionsSection({
   collections: CollectionEntry[];
 }) {
   const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [form, setForm] = useState({
@@ -803,17 +783,29 @@ function MovieCollectionsSection({
     category: { en: "", te: "" },
   });
 
+  const openAdd = () => { resetForm(); setEditIndex(null); setDialogOpen(true); };
+
+  const openEdit = (index: number) => {
+    const c = collections[index];
+    setForm({
+      movie: { en: c.movie.en, te: c.movie.te },
+      amount: { en: c.amount.en, te: c.amount.te },
+      category: { en: c.category.en, te: c.category.te },
+    });
+    setEditIndex(index);
+    setDialogOpen(true);
+  };
+
   const addMutation = useMutation({
     mutationFn: () => homeApi.addMovieCollection(form as CollectionEntry),
     onSuccess: () => {
       toast.success("Collection added");
       queryClient.invalidateQueries({ queryKey: ["home-config"] });
       resetForm();
+      setDialogOpen(false);
     },
     onError: (err: unknown) => {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Failed to add";
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to add";
       toast.error(message);
     },
   });
@@ -825,11 +817,10 @@ function MovieCollectionsSection({
       queryClient.invalidateQueries({ queryKey: ["home-config"] });
       resetForm();
       setEditIndex(null);
+      setDialogOpen(false);
     },
     onError: (err: unknown) => {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Failed to update";
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to update";
       toast.error(message);
     },
   });
@@ -843,204 +834,130 @@ function MovieCollectionsSection({
     },
   });
 
-  const startEdit = (index: number) => {
-    const c = collections[index];
-    setForm({
-      movie: { en: c.movie.en, te: c.movie.te },
-      amount: { en: c.amount.en, te: c.amount.te },
-      category: { en: c.category.en, te: c.category.te },
-    });
-    setEditIndex(index);
-  };
-
-  const cancelEdit = () => {
-    setEditIndex(null);
-    resetForm();
-  };
+  const isFormValid = form.movie.en && form.movie.te;
+  const isMutating = addMutation.isPending || editMutation.isPending;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <DollarSign className="h-5 w-5 text-emerald-500" />
-          <div>
-            <CardTitle>Movie Collections</CardTitle>
-            <CardDescription className="mt-1">
-              Track box office collection data displayed on the homepage.
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {collections.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
-            No collections added yet.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {collections.map((c, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">
-                    {c.movie.en}{" "}
-                    <span className="text-muted-foreground">/ {c.movie.te}</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Amount: {c.amount.en} · Category: {c.category.en}
-                  </p>
-                </div>
-                <div className="flex items-center gap-0.5 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => startEdit(i)}
-                    disabled={editIndex !== null}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={() => setDeleteIndex(i)}
-                    disabled={removeMutation.isPending}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+    <div className="space-y-4">
+      <SectionHeader
+        icon={<DollarSign className="h-5 w-5 text-emerald-500" />}
+        title="Movie Collections"
+        description="Track box office collection data displayed on the homepage."
+      >
+        <Button size="sm" onClick={openAdd}>
+          <Plus className="h-4 w-4 mr-1.5" />
+          Add Collection
+        </Button>
+      </SectionHeader>
+
+      <Card>
+        <CardContent className="p-0">
+          {collections.length === 0 ? (
+            <div className="p-6">
+              <EmptyState message="No collections added yet." />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[40px]">#</TableHead>
+                  <TableHead>Movie</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="w-[80px] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {collections.map((c, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="font-medium text-muted-foreground">{i + 1}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-sm">{c.movie.en}</p>
+                        <p className="text-xs text-muted-foreground">{c.movie.te}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-sm">{c.amount.en}</p>
+                        <p className="text-xs text-muted-foreground">{c.amount.te}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="capitalize">{c.category.en}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-0.5">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(i)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteIndex(i)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>{editIndex !== null ? "Edit Movie Collection" : "Add Movie Collection"}</DialogTitle>
+            <DialogDescription>{editIndex !== null ? "Update the collection details below." : "Fill in the details for the new collection entry."}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Movie (EN)</Label>
+                <Input value={form.movie.en} onChange={(e) => setForm((f) => ({ ...f, movie: { ...f.movie, en: e.target.value } }))} placeholder="Movie name" />
               </div>
-            ))}
-          </div>
-        )}
-
-        <ConfirmDialog
-          open={deleteIndex !== null}
-          onOpenChange={(open) => !open && setDeleteIndex(null)}
-          title="Delete Movie Collection"
-          description={
-            deleteIndex !== null
-              ? `Are you sure you want to delete "${collections[deleteIndex]?.movie?.en}"? This action cannot be undone.`
-              : ""
-          }
-          onConfirm={() => deleteIndex !== null && removeMutation.mutate(deleteIndex)}
-          isLoading={removeMutation.isPending}
-        />
-
-        <Separator />
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">
-              {editIndex !== null ? "Edit Collection" : "Add New Collection"}
-            </Label>
-            {editIndex !== null && (
-              <Button variant="ghost" size="sm" onClick={cancelEdit}>
-                <X className="h-3.5 w-3.5 mr-1" /> Cancel
-              </Button>
-            )}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Movie (EN)</Label>
-              <Input
-                value={form.movie.en}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    movie: { ...f.movie, en: e.target.value },
-                  }))
-                }
-                placeholder="Movie name"
-              />
+              <div className="space-y-1.5">
+                <Label className="text-xs">Movie (TE)</Label>
+                <Input value={form.movie.te} onChange={(e) => setForm((f) => ({ ...f, movie: { ...f.movie, te: e.target.value } }))} placeholder="సినిమా పేరు" />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Movie (TE)</Label>
-              <Input
-                value={form.movie.te}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    movie: { ...f.movie, te: e.target.value },
-                  }))
-                }
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Amount (EN)</Label>
+                <Input value={form.amount.en} onChange={(e) => setForm((f) => ({ ...f, amount: { ...f.amount, en: e.target.value } }))} placeholder="e.g. ₹150 Cr" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Amount (TE)</Label>
+                <Input value={form.amount.te} onChange={(e) => setForm((f) => ({ ...f, amount: { ...f.amount, te: e.target.value } }))} placeholder="₹150 కోట్లు" />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Amount (EN)</Label>
-              <Input
-                value={form.amount.en}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    amount: { ...f.amount, en: e.target.value },
-                  }))
-                }
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Amount (TE)</Label>
-              <Input
-                value={form.amount.te}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    amount: { ...f.amount, te: e.target.value },
-                  }))
-                }
-              />
-            </div>
-            <div className="col-span-2 space-y-1">
-              <Label className="text-xs text-muted-foreground">Category</Label>
-              <Select
-                value={form.category.en || undefined}
-                onValueChange={(v) => {
-                  const opt = COLLECTION_CATEGORIES.find((c) => c.value === v);
-                  if (opt) setForm((f) => ({ ...f, category: { en: opt.value, te: opt.te } }));
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COLLECTION_CATEGORIES.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>{c.en}</SelectItem>
-                  ))}
-                </SelectContent>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Category</Label>
+              <Select value={form.category.en || undefined} onValueChange={(v) => { const opt = COLLECTION_CATEGORIES.find((c) => c.value === v); if (opt) setForm((f) => ({ ...f, category: { en: opt.value, te: opt.te } })); }}>
+                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>{COLLECTION_CATEGORIES.map((c) => (<SelectItem key={c.value} value={c.value}>{c.en}</SelectItem>))}</SelectContent>
               </Select>
             </div>
           </div>
-          {editIndex !== null ? (
-            <Button
-              onClick={() => editMutation.mutate()}
-              disabled={editMutation.isPending || !form.movie.en || !form.movie.te}
-            >
-              {editMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="mr-2 h-4 w-4" />
-              )}
-              Update Collection
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isMutating}>Cancel</Button>
+            <Button onClick={() => editIndex !== null ? editMutation.mutate() : addMutation.mutate()} disabled={isMutating || !isFormValid}>
+              {isMutating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {editIndex !== null ? "Update" : "Add"} Collection
             </Button>
-          ) : (
-            <Button
-              onClick={() => addMutation.mutate()}
-              disabled={addMutation.isPending || !form.movie.en || !form.movie.te}
-            >
-              {addMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="mr-2 h-4 w-4" />
-              )}
-              Add Collection
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={deleteIndex !== null}
+        onOpenChange={(open) => !open && setDeleteIndex(null)}
+        title="Delete Movie Collection"
+        description={deleteIndex !== null ? `Are you sure you want to delete "${collections[deleteIndex]?.movie?.en}"? This action cannot be undone.` : ""}
+        onConfirm={() => deleteIndex !== null && removeMutation.mutate(deleteIndex)}
+        isLoading={removeMutation.isPending}
+      />
+    </div>
   );
 }
 
@@ -1067,37 +984,34 @@ function PostersSection({
     setPosters((p) => ({ ...p, [slot]: { ...p[slot], [field]: value } }));
   };
 
-  const slotLabels: Record<string, string> = {
-    popup: "Popup Poster",
-    movie: "Movie Poster",
-    navbar: "Navbar Banner",
+  const slotLabels: Record<string, { label: string; description: string }> = {
+    popup: { label: "Popup Poster", description: "Full-screen promotional popup on page load" },
+    movie: { label: "Movie Poster", description: "Featured movie poster on the homepage" },
+    navbar: { label: "Navbar Banner", description: "Slim banner displayed in the navigation bar" },
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <ImageIcon className="h-5 w-5 text-pink-500" />
-          <div>
-            <CardTitle>Posters</CardTitle>
-            <CardDescription className="mt-1">
-              Upload promotional posters and banners for different homepage
-              placements.
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid gap-6 lg:grid-cols-3">
-          {(["popup", "movie", "navbar"] as const).map((slot) => (
-            <div key={slot} className="space-y-3 p-4 border rounded-lg">
-              <h4 className="font-medium text-sm">{slotLabels[slot]}</h4>
+    <div className="space-y-4">
+      <SectionHeader
+        icon={<ImageIcon className="h-5 w-5 text-pink-500" />}
+        title="Posters"
+        description="Upload promotional posters and banners for different homepage placements."
+      />
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        {(["popup", "movie", "navbar"] as const).map((slot) => (
+          <Card key={slot}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">{slotLabels[slot].label}</CardTitle>
+              <CardDescription className="text-xs">{slotLabels[slot].description}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <ImageUpload
                 value={posters[slot].image}
                 onChange={(url) => updatePoster(slot, "image", url)}
                 folder="poster"
               />
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Link URL</Label>
                 <Input
                   value={posters[slot].url}
@@ -1105,15 +1019,18 @@ function PostersSection({
                   placeholder="https://..."
                 />
               </div>
-            </div>
-          ))}
-        </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="flex justify-end">
         <Button onClick={() => onUpdate({ posters })} disabled={isUpdating}>
           {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save Posters
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -1131,72 +1048,109 @@ function AdsSection({
   isUpdating: boolean;
 }) {
   const [ads, setAds] = useState(config.ads);
-  const adSlots = [
-    "homeLong",
-    "homeShort",
-    "categoryLong",
-    "categoryShort",
-    "newsLong",
-    "newsShort",
-  ] as const;
 
-  const slotLabels: Record<string, string> = {
-    homeLong: "Home — Long Banner",
-    homeShort: "Home — Short Banner",
-    categoryLong: "Category — Long Banner",
-    categoryShort: "Category — Short Banner",
-    newsLong: "News — Long Banner",
-    newsShort: "News — Short Banner",
-  };
+  const adSlots = [
+    { key: "homeLong" as const, label: "Home — Long Banner", group: "Home" },
+    { key: "homeShort" as const, label: "Home — Short Banner", group: "Home" },
+    { key: "categoryLong" as const, label: "Category — Long Banner", group: "Category" },
+    { key: "categoryShort" as const, label: "Category — Short Banner", group: "Category" },
+    { key: "newsLong" as const, label: "News — Long Banner", group: "News" },
+    { key: "newsShort" as const, label: "News — Short Banner", group: "News" },
+  ];
 
   const updateAd = (
-    slot: (typeof adSlots)[number],
+    slot: (typeof adSlots)[number]["key"],
     field: "image" | "url",
     value: string,
   ) => {
     setAds((a) => ({ ...a, [slot]: { ...a[slot], [field]: value } }));
   };
 
+  const groups = ["Home", "Category", "News"] as const;
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <Megaphone className="h-5 w-5 text-amber-500" />
-          <div>
-            <CardTitle>Advertisements</CardTitle>
-            <CardDescription className="mt-1">
-              Manage ad banners across different pages and placements.
-            </CardDescription>
+    <div className="space-y-4">
+      <SectionHeader
+        icon={<Megaphone className="h-5 w-5 text-amber-500" />}
+        title="Advertisements"
+        description="Manage ad banners across different pages and placements."
+      />
+
+      {groups.map((group) => (
+        <div key={group} className="space-y-3">
+          <h4 className="text-sm font-medium text-muted-foreground">{group} Page</h4>
+          <div className="grid gap-4 md:grid-cols-2">
+            {adSlots.filter((s) => s.group === group).map((slot) => (
+              <Card key={slot.key}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">{slot.label}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <ImageUpload
+                    value={ads[slot.key].image}
+                    onChange={(url) => updateAd(slot.key, "image", url)}
+                    folder="ad"
+                  />
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Link URL</Label>
+                    <Input
+                      value={ads[slot.key].url}
+                      onChange={(e) => updateAd(slot.key, "url", e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-2">
-          {adSlots.map((slot) => (
-            <div key={slot} className="space-y-3 p-4 border rounded-lg">
-              <h4 className="font-medium text-sm">{slotLabels[slot]}</h4>
-              <ImageUpload
-                value={ads[slot].image}
-                onChange={(url) => updateAd(slot, "image", url)}
-                folder="ad"
-              />
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Link URL</Label>
-                <Input
-                  value={ads[slot].url}
-                  onChange={(e) => updateAd(slot, "url", e.target.value)}
-                  placeholder="https://..."
-                />
-              </div>
-            </div>
-          ))}
-        </div>
+      ))}
+
+      <div className="flex justify-end">
         <Button onClick={() => onUpdate({ ads })} disabled={isUpdating}>
           {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save Ads
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
+  );
+}
+
+/* ===================================================================
+   Shared Components
+   =================================================================== */
+
+function SectionHeader({
+  icon,
+  title,
+  description,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5">{icon}</div>
+        <div>
+          <h2 className="text-lg font-semibold font-heading">{title}</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 text-center">
+      <Settings2 className="h-8 w-8 text-muted-foreground/40 mb-2" />
+      <p className="text-sm text-muted-foreground">{message}</p>
+    </div>
   );
 }
 

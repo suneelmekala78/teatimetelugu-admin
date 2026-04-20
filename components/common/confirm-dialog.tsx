@@ -42,7 +42,7 @@ export function ConfirmDialog({
             </div>
           )}
           <DialogTitle className="text-center">{title}</DialogTitle>
-          <DialogDescription className="text-center">
+          <DialogDescription className="text-center" render={<div />}>
             {description}
           </DialogDescription>
         </DialogHeader>
